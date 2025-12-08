@@ -1,0 +1,16 @@
+"use client"
+
+export default function AdminPartnersPage() {
+  return (
+    <div className="p-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900">Partner & Clearing</h1>
+        <p className="text-slate-600 mt-2">Verifizierung und Verwaltung von Partnern</p>
+      </div>
+      <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
+        <p className="text-slate-500">Partner-Verwaltung - Coming Soon</p>
+      </div>
+    </div>
+  )
+}
+

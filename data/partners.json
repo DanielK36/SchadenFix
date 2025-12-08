@@ -1,0 +1,108 @@
+{
+  "glas": [
+    {
+      "name": "Glaserei Müller",
+      "email": "glas@partner.de",
+      "whatsapp": "+491711234567",
+      "regions": ["41", "40"]
+    },
+    {
+      "name": "Auto-Glas Service",
+      "email": "service@autoglas.de",
+      "regions": ["41"]
+    }
+  ],
+  "dach": [
+    {
+      "name": "Dachprofi GmbH",
+      "email": "dach@partner.de",
+      "regions": ["41"]
+    },
+    {
+      "name": "Dach & Fassade Schmidt",
+      "email": "info@dach-schmidt.de",
+      "regions": ["40", "41"]
+    }
+  ],
+  "gutachter": [
+    {
+      "name": "SV Schmidt",
+      "email": "gutachten@partner.de",
+      "regions": ["4"]
+    },
+    {
+      "name": "Gutachterbüro Weber",
+      "email": "info@gutachter-weber.de",
+      "regions": ["40", "41"]
+    }
+  ],
+  "anwalt": [
+    {
+      "name": "Kanzlei Recht & Klar",
+      "email": "kanzlei@partner.de",
+      "regions": ["4", "5"]
+    },
+    {
+      "name": "Anwaltskanzlei Müller",
+      "email": "kontakt@anwalt-mueller.de",
+      "regions": ["40", "41"]
+    }
+  ],
+  "werkstatt": [
+    {
+      "name": "AutoFit Mönchengladbach",
+      "email": "werkstatt@partner.de",
+      "regions": ["41"]
+    },
+    {
+      "name": "Kfz-Service Düsseldorf",
+      "email": "info@kfz-service-duesseldorf.de",
+      "regions": ["40"]
+    }
+  ],
+  "sanitaer": [
+    {
+      "name": "Sanitär Service GmbH",
+      "email": "sanitaer@partner.de",
+      "regions": ["40", "41"]
+    },
+    {
+      "name": "Rohr-Notdienst",
+      "email": "notdienst@rohrpartner.de",
+      "regions": ["4", "5"]
+    }
+  ],
+  "trocknung": [
+    {
+      "name": "Trocknungsprofi",
+      "email": "trocknung@partner.de",
+      "regions": ["40", "41"]
+    },
+    {
+      "name": "Wasserschaden-Sanierung",
+      "email": "sanierung@partner.de",
+      "regions": ["4", "5"]
+    }
+  ],
+  "brandsanierung": [
+    {
+      "name": "Brandsanierung & Wiederaufbau",
+      "email": "brand@partner.de",
+      "regions": ["40", "41"]
+    }
+  ],
+  "glaser": [
+    {
+      "name": "Glaserei Müller",
+      "email": "glas@partner.de",
+      "whatsapp": "+491711234567",
+      "regions": ["41", "40"]
+    },
+    {
+      "name": "Auto-Glas Service",
+      "email": "service@autoglas.de",
+      "regions": ["41"]
+    }
+  ]
+}
+
