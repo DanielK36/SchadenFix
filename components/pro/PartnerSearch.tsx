@@ -129,7 +129,7 @@ export function PartnerSearch({ onSendRequest }: PartnerSearchProps) {
         <Button
           onClick={handleSearch}
           disabled={!zipCode || !selectedTrade || isSearching}
-          className="w-full bg-[#D4AF37] text-slate-900 hover:bg-[#B8941F] font-semibold"
+          className="w-full bg-[#B8903A] text-slate-900 hover:bg-[#A67C2A] font-semibold"
         >
           {isSearching ? (
             <>
@@ -160,7 +160,7 @@ export function PartnerSearch({ onSendRequest }: PartnerSearchProps) {
               key={partner.id}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="p-4 border border-slate-200 rounded-lg hover:border-[#D4AF37] transition-colors"
+              className="p-4 border border-slate-200 rounded-lg hover:border-[#B8903A] transition-colors"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">

@@ -125,7 +125,7 @@ export function OrderWizardScreen4({
                     onClick={() => toggleService(service.id)}
                     className={`py-4 px-4 rounded-xl border-2 font-semibold transition-all active:scale-[0.98] ${
                       isSelected
-                        ? "bg-[#D4AF37] border-[#D4AF37] text-slate-900 shadow-md"
+                        ? "bg-[#B8903A] border-[#B8903A] text-slate-900 shadow-md"
                         : "bg-white border-slate-200 text-slate-700"
                     }`}
                   >

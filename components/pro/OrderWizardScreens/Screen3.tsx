@@ -15,6 +15,7 @@ interface OrderWizardScreen3Props {
     dimension?: number
     damageType?: string
     measures?: string[]
+    notes?: string
   }
   onUpdate: (updates: Partial<WizardData>) => void
   onCanProceedChange: (canProceed: boolean) => void
@@ -131,7 +132,7 @@ export function OrderWizardScreen3({
                   }}
                   className={`px-6 py-3 rounded-full font-semibold transition-all active:scale-[0.98] ${
                     room === r
-                      ? "bg-[#D4AF37] text-slate-900 shadow-md"
+                      ? "bg-[#B8903A] text-slate-900 shadow-md"
                       : "bg-white border-2 border-slate-200 text-slate-700"
                   }`}
                 >
@@ -167,7 +168,7 @@ export function OrderWizardScreen3({
                   }}
                   className={`px-6 py-3 rounded-full font-semibold transition-all active:scale-[0.98] ${
                     pipe === p
-                      ? "bg-[#D4AF37] text-slate-900 shadow-md"
+                      ? "bg-[#B8903A] text-slate-900 shadow-md"
                       : "bg-white border-2 border-slate-200 text-slate-700"
                   }`}
                 >
@@ -203,7 +204,7 @@ export function OrderWizardScreen3({
                   }}
                   className={`px-6 py-3 rounded-full font-semibold transition-all active:scale-[0.98] ${
                     material === m
-                      ? "bg-[#D4AF37] text-slate-900 shadow-md"
+                      ? "bg-[#B8903A] text-slate-900 shadow-md"
                       : "bg-white border-2 border-slate-200 text-slate-700"
                   }`}
                 >
@@ -229,7 +230,7 @@ export function OrderWizardScreen3({
                       navigator.vibrate(20)
                     }
                   }}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#D4AF37]"
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#B8903A]"
                 />
                 <div className="flex justify-between text-xs text-slate-400 mt-1">
                   <span>DN15</span>
@@ -265,7 +266,7 @@ export function OrderWizardScreen3({
                   }}
                   className={`px-6 py-3 rounded-full font-semibold transition-all active:scale-[0.98] ${
                     damageType === dt
-                      ? "bg-[#D4AF37] text-slate-900 shadow-md"
+                      ? "bg-[#B8903A] text-slate-900 shadow-md"
                       : "bg-white border-2 border-slate-200 text-slate-700"
                   }`}
                 >
@@ -298,7 +299,7 @@ export function OrderWizardScreen3({
                     onClick={() => toggleMeasure(m)}
                     className={`px-6 py-3 rounded-full font-semibold transition-all active:scale-[0.98] ${
                       isSelected
-                        ? "bg-[#D4AF37] text-slate-900 shadow-md"
+                        ? "bg-[#B8903A] text-slate-900 shadow-md"
                         : "bg-white border-2 border-slate-200 text-slate-700"
                     }`}
                   >
@@ -339,7 +340,7 @@ export function OrderWizardScreen3({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="z.B. Haupthahn klemmt, Mieter war nicht da..."
-              className="w-full min-h-[80px] px-4 py-3 pr-12 rounded-xl border-2 border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] resize-none"
+              className="w-full min-h-[80px] px-4 py-3 pr-12 rounded-xl border-2 border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#B8903A] focus:border-[#B8903A] resize-none"
             />
             {/* Voice Recording Button (WhatsApp-style) */}
             <button

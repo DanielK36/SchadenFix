@@ -31,7 +31,7 @@ export function RoutingRadar({ leads }: RoutingRadarProps) {
       case "found":
         return <CheckCircle2 className="w-5 h-5 text-green-500" />
       case "accepted":
-        return <CheckCircle2 className="w-5 h-5 text-[#D4AF37]" />
+        return <CheckCircle2 className="w-5 h-5 text-[#B8903A]" />
       default:
         return null
     }
@@ -57,7 +57,7 @@ export function RoutingRadar({ leads }: RoutingRadarProps) {
       case "found":
         return "text-green-600 bg-green-50 border-green-200"
       case "accepted":
-        return "text-[#D4AF37] bg-[#D4AF37]/10 border-[#D4AF37]/20"
+        return "text-[#B8903A] bg-[#B8903A]/10 border-[#B8903A]/20"
       default:
         return ""
     }

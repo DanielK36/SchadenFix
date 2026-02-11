@@ -1,6 +1,6 @@
 import { Resend } from "resend"
 import { Claim } from "@/lib/repo/claims"
-import { RoutingResult } from "@/lib/partner-routing"
+import { RoutingResult, Partner } from "@/lib/partner-routing"
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -77,7 +77,7 @@ export async function sendInternalNotificationEmail(
     return
   }
 
-  const photosList = claim.photos.length > 0
+  const photosList = claim.photos && claim.photos.length > 0
     ? `<ul>${claim.photos.map((url) => `<li><a href="${url}">${url}</a></li>`).join("")}</ul>`
     : "<p>Keine Fotos hochgeladen.</p>"
 
@@ -138,7 +138,7 @@ export async function sendPartnerEmail(
         <p><strong>Ort:</strong> ${claim.locationText}, ${claim.plz}</p>
         <p><strong>Datum:</strong> ${new Date(claim.occurredAt).toLocaleDateString("de-DE")}</p>
         <p><strong>Beschreibung:</strong> ${claim.description}</p>
-        ${claim.photos.length > 0 ? `<p><strong>Fotos:</strong> ${claim.photos.length} Fotos verfügbar</p>` : ""}
+        ${claim.photos && claim.photos.length > 0 ? `<p><strong>Fotos:</strong> ${claim.photos.length} Fotos verfügbar</p>` : ""}
         <p>Bitte nehmen Sie Kontakt mit dem Kunden auf:</p>
         <p><strong>${claim.contact.name}</strong><br>
         E-Mail: ${claim.contact.email}<br>
@@ -152,3 +152,64 @@ export async function sendPartnerEmail(
   }
 }
 
+/**
+ * E-Mail „Angebot an Kunde“ – Link zum Kunden-Angebot
+ */
+export async function sendOfferToCustomer(
+  customerEmail: string,
+  customerName: string,
+  offerUrl: string,
+  orderOrOfferId?: string
+): Promise<void> {
+  if (!resend) {
+    console.log("📧 E-MAIL (DEMO) - Angebot an Kunde:", customerEmail, offerUrl)
+    return
+  }
+  try {
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || "Schadenportal <noreply@schadenportal.de>",
+      to: customerEmail,
+      subject: `Ihr Kostenvoranschlag ${orderOrOfferId ? `– ${orderOrOfferId}` : ""}`.trim(),
+      html: `
+        <h1>Ihr Kostenvoranschlag</h1>
+        <p>Hallo ${customerName.split(" ")[0] || "Kunde"},</p>
+        <p>Ihr Handwerksbetrieb hat Ihnen einen Kostenvoranschlag erstellt.</p>
+        <p>Sie können das Angebot einsehen und annehmen unter:</p>
+        <p><strong><a href="${offerUrl}">${offerUrl}</a></strong></p>
+        <p>Das Angebot ist in der Regel 14 Tage gültig.</p>
+        <p>Mit freundlichen Grüßen,<br>Ihr Handwerksbetrieb</p>
+      `,
+    })
+  } catch (error) {
+    console.error("Failed to send offer-to-customer email:", error)
+  }
+}
+
+/**
+ * E-Mail „Annahme an Handwerker“ – Kunde hat Angebot angenommen
+ */
+export async function sendOfferAcceptedToPro(
+  proEmail: string,
+  customerName: string,
+  orderId: string
+): Promise<void> {
+  if (!resend) {
+    console.log("📧 E-MAIL (DEMO) - Annahme an Handwerker:", proEmail, customerName, orderId)
+    return
+  }
+  try {
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || "Schadenportal <noreply@schadenportal.de>",
+      to: proEmail,
+      subject: `Angebot von ${customerName} angenommen – Auftrag ${orderId}`,
+      html: `
+        <h1>Angebot angenommen</h1>
+        <p>Der Kunde <strong>${customerName}</strong> hat Ihr Angebot zum Auftrag <strong>${orderId}</strong> angenommen.</p>
+        <p>Bitte nehmen Sie die nächsten Schritte (Terminabstimmung, Ausführung) vor.</p>
+        <p>Mit freundlichen Grüßen,<br>Schadenportal</p>
+      `,
+    })
+  } catch (error) {
+    console.error("Failed to send offer-accepted-to-pro email:", error)
+  }
+}

@@ -60,7 +60,7 @@ export function VoiceNotePlayer({ transcript, duration = 0 }: VoiceNotePlayerPro
           </div>
           <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-[#D4AF37] rounded-full"
+              className="h-full bg-[#B8903A] rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
             />

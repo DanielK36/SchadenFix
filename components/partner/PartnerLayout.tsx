@@ -12,9 +12,11 @@ import {
   UserCog,
   Settings,
   LogOut,
+  AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
+import { useDemoMode } from "@/lib/hooks/useDemoMode"
 
 const navigation = [
   { name: "Dashboard", href: "/partner", icon: LayoutDashboard },
@@ -40,10 +42,20 @@ interface PartnerLayoutProps {
 export default function PartnerLayout({ children }: PartnerLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { isDemoMode } = useDemoMode()
 
-  const handleLogout = () => {
-    console.log("User logged out")
-    router.push("/login")
+  const handleLogout = async () => {
+    try {
+      const { signOutPro } = await import("@/lib/auth")
+      await signOutPro()
+      router.push("/partner/login")
+      router.refresh()
+    } catch (error) {
+      console.error("Logout error:", error)
+      // Still redirect even if logout fails
+      router.push("/partner/login")
+      router.refresh()
+    }
   }
 
   return (
@@ -53,10 +65,18 @@ export default function PartnerLayout({ children }: PartnerLayoutProps) {
         {/* Sidebar */}
         <aside className="partner-sidebar">
           <Link href="/partner" className="flex items-center space-x-2 mb-8">
-            <div className="w-8 h-8 bg-[#D4AF37] rounded-lg flex items-center justify-center">
-              <span className="text-[#000000] font-bold text-sm">PE</span>
+            <div className="w-8 h-8 bg-[#B8903A] rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">PE</span>
             </div>
-            <span className="text-white font-semibold text-lg">PartnerEngine</span>
+            <div className="flex flex-col">
+              <span className="text-white font-semibold text-lg">PartnerEngine</span>
+              {isDemoMode && (
+                <div className="flex items-center gap-1 mt-1">
+                  <AlertTriangle className="w-3 h-3 text-amber-500" />
+                  <span className="text-xs font-semibold text-amber-500">DEMO</span>
+                </div>
+              )}
+            </div>
           </Link>
 
           <nav className="space-y-1 flex flex-col flex-1">
@@ -73,7 +93,7 @@ export default function PartnerLayout({ children }: PartnerLayoutProps) {
                       href={item.href}
                       className={cn("partner-sidebar-item", isActive && "active")}
                     >
-                      <item.icon className={cn("w-5 h-5", isActive && "text-[#D4AF37]")} />
+                      <item.icon className={cn("w-5 h-5", isActive && "text-[#B8903A]")} />
                       <span>{item.name}</span>
                     </Link>
                   </motion.div>
@@ -85,7 +105,7 @@ export default function PartnerLayout({ children }: PartnerLayoutProps) {
               <motion.div whileTap={{ scale: 0.95 }}>
                 <button
                   onClick={handleLogout}
-                  className="partner-sidebar-item w-full text-[#9CA3AF] hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                  className="partner-sidebar-item w-full text-[#6B7280] hover:text-red-500 hover:bg-red-500/10 transition-colors"
                 >
                   <LogOut className="w-5 h-5" />
                   <span>Abmelden</span>
@@ -99,7 +119,7 @@ export default function PartnerLayout({ children }: PartnerLayoutProps) {
         <div className="flex-1 flex flex-col bg-[#000000]">
           {/* Page Content */}
           <main className="flex-1">
-            <div className="max-w-6xl mx-auto px-6 lg:px-8 py-8">
+            <div className="max-w-[1600px] mx-auto px-8 md:px-12 lg:px-16 py-10 md:py-12 lg:py-16">
               {children}
             </div>
           </main>
@@ -109,20 +129,20 @@ export default function PartnerLayout({ children }: PartnerLayoutProps) {
             <div className="max-w-7xl mx-auto px-6">
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <span className="text-white text-sm font-medium">© 2024 PartnerEngine</span>
-                <span className="text-[#9CA3AF]">·</span>
-                <Link href="/impressum" className="text-white hover:text-[#D4AF37] text-sm font-medium transition-colors">
+                <span className="text-[#6B7280]">·</span>
+                <Link href="/impressum" className="text-white hover:text-[#B8903A] text-sm font-medium transition-colors">
                   Impressum
                 </Link>
-                <span className="text-[#9CA3AF]">·</span>
-                <Link href="/datenschutz" className="text-white hover:text-[#D4AF37] text-sm font-medium transition-colors">
+                <span className="text-[#6B7280]">·</span>
+                <Link href="/datenschutz" className="text-white hover:text-[#B8903A] text-sm font-medium transition-colors">
                   Datenschutz
                 </Link>
-                <span className="text-[#9CA3AF]">·</span>
-                <Link href="/agb" className="text-white hover:text-[#D4AF37] text-sm font-medium transition-colors">
+                <span className="text-[#6B7280]">·</span>
+                <Link href="/agb" className="text-white hover:text-[#B8903A] text-sm font-medium transition-colors">
                   AGB
                 </Link>
-                <span className="text-[#9CA3AF]">·</span>
-                <Link href="/partner/team" className="text-white hover:text-[#D4AF37] text-sm font-medium transition-colors">
+                <span className="text-[#6B7280]">·</span>
+                <Link href="/partner/team" className="text-white hover:text-[#B8903A] text-sm font-medium transition-colors">
                   Team
                 </Link>
               </div>
@@ -137,17 +157,25 @@ export default function PartnerLayout({ children }: PartnerLayoutProps) {
         <header className="fixed top-0 left-0 right-0 bg-[#121212]/90 backdrop-blur-md border-b border-white/20 px-4 py-3 z-50" style={{ WebkitBackdropFilter: 'blur(20px)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-[#D4AF37] rounded-lg flex items-center justify-center">
-                <span className="text-[#000000] font-bold text-xs">PE</span>
+              <div className="w-7 h-7 bg-[#B8903A] rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xs">PE</span>
               </div>
-              <h1 className="text-base font-semibold text-white">PartnerEngine</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-semibold text-white">PartnerEngine</h1>
+                {isDemoMode && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-900/50 border border-amber-700 rounded-full">
+                    <AlertTriangle className="w-3 h-3 text-amber-400" />
+                    <span className="text-xs font-semibold text-amber-400">DEMO</span>
+                  </div>
+                )}
+              </div>
             </div>
             <Link
               href="/partner/settings"
               className={cn(
                 "w-7 h-7 rounded-full bg-[#1A1A1A]/50 backdrop-blur-sm flex items-center justify-center transition-colors",
                 pathname === "/partner/settings" || pathname?.startsWith("/partner/settings/")
-                  ? "bg-[#D4AF37]/20 border border-[#D4AF37]/30"
+                  ? "bg-[#B8903A]/20 border border-[#B8903A]/30"
                   : "hover:bg-[#2A2A2A]/50"
               )}
             >
@@ -155,7 +183,7 @@ export default function PartnerLayout({ children }: PartnerLayoutProps) {
                 className={cn(
                   "w-3.5 h-3.5",
                   pathname === "/partner/settings" || pathname?.startsWith("/partner/settings/")
-                    ? "text-[#D4AF37]"
+                    ? "text-[#B8903A]"
                     : "text-white"
                 )}
               />
@@ -179,17 +207,27 @@ export default function PartnerLayout({ children }: PartnerLayoutProps) {
                     href={item.href}
                     className={cn(
                       "flex flex-col items-center justify-center py-2 px-2 min-w-[50px] transition-all duration-200 flex-shrink-0",
-                      isActive ? "text-[#D4AF37]" : "text-[#9CA3AF]"
+                      isActive ? "text-[#B8903A]" : "text-[#6B7280]"
                     )}
                   >
-                    <item.icon className={cn("w-5 h-5 mb-0.5", isActive && "text-[#D4AF37]")} />
-                    <span className={cn("text-[10px] font-medium", isActive && "text-[#D4AF37]")}>
+                    <item.icon className={cn("w-5 h-5 mb-0.5", isActive && "text-[#B8903A]")} />
+                    <span className={cn("text-[10px] font-medium", isActive && "text-[#B8903A]")}>
                       {item.name}
                     </span>
                   </Link>
                 </motion.div>
               )
             })}
+            {/* Mobile Logout Button */}
+            <motion.div whileTap={{ scale: 0.9 }}>
+              <button
+                onClick={handleLogout}
+                className="flex flex-col items-center justify-center py-2 px-2 min-w-[50px] transition-all duration-200 flex-shrink-0 text-red-500"
+              >
+                <LogOut className="w-5 h-5 mb-0.5" />
+                <span className="text-[10px] font-medium">Abmelden</span>
+              </button>
+            </motion.div>
           </div>
         </nav>
       </div>

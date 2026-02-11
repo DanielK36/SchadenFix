@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
   Crown,
@@ -16,100 +16,68 @@ import {
 } from "lucide-react"
 import { AnimatedNumber } from "@/components/pro/AnimatedNumber"
 import { TeamSparkline } from "@/components/pro/TeamSparkline"
+import { useDemoMode } from "@/lib/hooks/useDemoMode"
+import { supabase } from "@/lib/supabase"
 
-// Mock data - in production, this would come from an API
-const isBoss = true // Switch between boss and employee view
-const currentUser = {
-  id: "user-1",
-  name: "Max Mustermann",
-  role: isBoss ? "boss" : "employee",
-}
-
-// Boss View Data
+// Boss View Data (defaults)
 const bossData = {
-  passiveIncome: 1250.0,
+  passiveIncome: 0.0,
   sparklineData: [
-    { day: "Mo", value: 200 },
-    { day: "Di", value: 350 },
-    { day: "Mi", value: 280 },
-    { day: "Do", value: 420 },
+    { day: "Mo", value: 0 },
+    { day: "Di", value: 0 },
+    { day: "Mi", value: 0 },
+    { day: "Do", value: 0 },
     { day: "Fr", value: 0 },
     { day: "Sa", value: 0 },
     { day: "So", value: 0 },
   ],
-  leaderboard: [
-    {
-      id: "emp-1",
-      name: "Anna Schmidt",
-      leads: 24,
-      revenue: 4800,
-      commission: 360,
-      rank: 1,
-    },
-    {
-      id: "emp-2",
-      name: "Tom Weber",
-      leads: 18,
-      revenue: 3600,
-      commission: 270,
-      rank: 2,
-    },
-    {
-      id: "emp-3",
-      name: "Lisa Müller",
-      leads: 15,
-      revenue: 3000,
-      commission: 225,
-      rank: 3,
-    },
-    {
-      id: "emp-4",
-      name: "Jan Becker",
-      leads: 12,
-      revenue: 2400,
-      commission: 180,
-      rank: 4,
-    },
-  ],
+  leaderboard: [] as Array<{
+    id: string
+    name: string
+    leads: number
+    revenue: number
+    commission: number
+    rank: number
+  }>,
 }
 
 // Employee View Data
 const employeeData = {
-  earnedCommission: 360.0,
-  currentLeads: 24,
+  earnedCommission: 0.0,
+  currentLeads: 0,
   nextBonus: {
     target: 25,
-    current: 24,
+    current: 0,
     bonusAmount: 500,
   },
-  recentWins: [
-    {
-      id: "win-1",
-      customer: "Maler Müller",
-      status: "Auftrag angenommen",
-      commission: 75.0,
-      date: "2024-01-15",
-    },
-    {
-      id: "win-2",
-      customer: "Elektro Schmidt",
-      status: "Auftrag angenommen",
-      commission: 120.0,
-      date: "2024-01-14",
-    },
-    {
-      id: "win-3",
-      customer: "Sanitär Weber",
-      status: "In Bearbeitung",
-      commission: 0,
-      date: "2024-01-13",
-    },
-  ],
+  recentWins: [] as Array<{
+    id: string
+    customer: string
+    status: string
+    commission: number
+    date: string
+  }>,
 }
 
-function InviteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function InviteModal({
+  isOpen,
+  onClose,
+  onInvite,
+  tempPassword,
+  inviteEmail,
+  setInviteEmail,
+  loading,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onInvite: () => void
+  tempPassword: string | null
+  inviteEmail: string
+  setInviteEmail: (v: string) => void
+  loading: boolean
+}) {
   const [copied, setCopied] = useState(false)
-  const inviteLink = "https://app.schadenportal.de/invite/abc123xyz"
+  const inviteLink = tempPassword ? `Temporäres Passwort: ${tempPassword}` : ""
 
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteLink)
@@ -138,44 +106,78 @@ function InviteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
         </div>
 
         <p className="text-sm text-slate-600 mb-4">
-          Teilen Sie diesen Link mit Ihrem Mitarbeiter:
+          Geben Sie die E-Mail ein, um einen Mitarbeiter anzulegen:
         </p>
 
-        <div className="flex items-center space-x-2 mb-4">
+        <div className="space-y-3 mb-4">
           <input
-            type="text"
-            value={inviteLink}
-            readOnly
-            className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700"
+            type="email"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            placeholder="mitarbeiter@example.com"
+            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700"
           />
           <button
-            onClick={handleCopy}
-            className="px-4 py-2 bg-[#D4AF37] text-slate-900 rounded-lg font-semibold hover:bg-[#B8941F] transition-colors flex items-center space-x-2"
+            onClick={onInvite}
+            disabled={loading || !inviteEmail}
+            className="w-full px-4 py-2 bg-[#B8903A] text-slate-900 rounded-lg font-semibold hover:bg-[#A67C2A] transition-colors flex items-center justify-center space-x-2"
           >
-            {copied ? (
+            {loading ? (
               <>
-                <Check className="w-4 h-4" />
-                <span>Kopiert!</span>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Erstelle...</span>
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4" />
-                <span>Kopieren</span>
+                <UserPlus className="w-4 h-4" />
+                <span>Mitarbeiter erstellen</span>
               </>
             )}
           </button>
         </div>
 
+        {tempPassword && (
+          <>
+            <p className="text-xs text-slate-500 mb-2">
+              Temporäres Passwort (bitte weitergeben):
+            </p>
+            <div className="flex items-center space-x-2 mb-4">
+              <input
+                type="text"
+                value={inviteLink}
+                readOnly
+                className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700"
+              />
+              <button
+                onClick={handleCopy}
+                className="px-4 py-2 bg-[#B8903A] text-slate-900 rounded-lg font-semibold hover:bg-[#A67C2A] transition-colors flex items-center space-x-2"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Kopiert!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Kopieren</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </>
+        )}
+
         <div className="flex space-x-2">
           <a
-            href={`mailto:?subject=Einladung zum Schadenportal&body=Hallo,%0D%0A%0D%0AHier ist dein Einladungslink: ${inviteLink}`}
+            href={`mailto:?subject=Einladung zum Schadenportal&body=Hallo,%0D%0A%0D%0ADein temporäres Passwort: ${inviteLink}`}
             className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-semibold hover:bg-slate-200 transition-colors flex items-center justify-center space-x-2"
           >
             <Mail className="w-4 h-4" />
             <span>Per E-Mail</span>
           </a>
           <a
-            href={`https://wa.me/?text=Hallo,%20hier%20ist%20dein%20Einladungslink:%20${inviteLink}`}
+            href={`https://wa.me/?text=Hallo,%20dein%20tempor%C3%A4res%20Passwort:%20${inviteLink}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center justify-center space-x-2"
@@ -190,8 +192,102 @@ function InviteModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
 }
 
 export default function TeamPage() {
+  const { isDemoMode } = useDemoMode()
   const [showInviteModal, setShowInviteModal] = useState(false)
-  const isBossView = isBoss
+  const [teamMembers, setTeamMembers] = useState<Array<{ id: string; name: string; email?: string }>>([])
+  const [loading, setLoading] = useState(true)
+  const [isBossView, setIsBossView] = useState(true)
+  // Pro-Team-Seite zeigt immer Team-Verwaltung (Boss-Ansicht). Nur bei Rolle "mitarbeiter" die Provisions-Ansicht.
+  const [inviteEmail, setInviteEmail] = useState("")
+  const [tempPassword, setTempPassword] = useState<string | null>(null)
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [leaderboard, setLeaderboard] = useState(bossData.leaderboard)
+
+  // Load team members from Supabase
+  useEffect(() => {
+    async function loadTeam() {
+      if (isDemoMode) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          setLoading(false)
+          return
+        }
+
+        // Check if user is chef (boss)
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single()
+
+        setIsBossView(profile?.role !== "mitarbeiter")
+
+        if (profile?.role === "chef") {
+          const { data: sessionData } = await supabase.auth.getSession()
+          const token = sessionData.session?.access_token
+          const res = await fetch("/api/pro/team/members", {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          })
+          const data = await res.json()
+          if (data?.success) {
+            const members = data.members || []
+            setTeamMembers(members.map((m: any) => ({
+              id: m.id,
+              name: m.name || "—",
+              email: m.email || undefined,
+            })))
+            setLeaderboard(
+              members.map((m: any, idx: number) => ({
+                id: m.id,
+                name: m.name || "—",
+                leads: 0,
+                revenue: 0,
+                commission: 0,
+                rank: idx + 1,
+              }))
+            )
+          }
+        }
+      } catch (error) {
+        console.error("Error loading team:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadTeam()
+  }, [isDemoMode])
+
+  const handleInvite = async () => {
+    if (!inviteEmail) return
+    setInviteLoading(true)
+    setTempPassword(null)
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      const res = await fetch("/api/pro/team/invite", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ email: inviteEmail }),
+      })
+      const data = await res.json()
+      if (!data?.success) throw new Error(data?.error || "Einladung fehlgeschlagen")
+      setTempPassword(data.tempPassword || null)
+      setInviteEmail("")
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setInviteLoading(false)
+    }
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
@@ -208,7 +304,7 @@ export default function TeamPage() {
         {isBossView && (
           <button
             onClick={() => setShowInviteModal(true)}
-            className="px-6 py-3 bg-[#D4AF37] text-slate-900 rounded-xl font-semibold hover:bg-[#B8941F] transition-colors shadow-md flex items-center space-x-2"
+            className="px-6 py-3 bg-[#B8903A] text-slate-900 rounded-xl font-semibold hover:bg-[#A67C2A] transition-colors shadow-md flex items-center space-x-2"
           >
             <UserPlus className="w-5 h-5" />
             <span>Mitarbeiter einladen</span>
@@ -274,20 +370,28 @@ export default function TeamPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {bossData.leaderboard.map((member) => (
+                  {leaderboard.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center">
+                        <p className="text-slate-500">Noch keine Team-Mitglieder vorhanden</p>
+                        <p className="text-sm text-slate-400 mt-2">Laden Sie Mitarbeiter ein, um Ihr Team aufzubauen</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    leaderboard.map((member) => (
                     <tr key={member.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
-                          {member.rank === 1 && <Crown className="w-5 h-5 text-[#D4AF37]" />}
+                          {member.rank === 1 && <Crown className="w-5 h-5 text-[#B8903A]" />}
                           <span
                             className={`text-sm font-semibold ${
-                              member.rank === 1 ? "text-[#D4AF37]" : "text-slate-600"
+                              member.rank === 1 ? "text-[#B8903A]" : "text-slate-600"
                             }`}
                           >
                             #{member.rank}
                           </span>
                           {member.rank === 1 && (
-                            <span className="px-2 py-0.5 bg-[#D4AF37]/10 text-[#D4AF37] text-xs font-semibold rounded-full">
+                            <span className="px-2 py-0.5 bg-[#B8903A]/10 text-[#B8903A] text-xs font-semibold rounded-full">
                               Top 1
                             </span>
                           )}
@@ -308,7 +412,7 @@ export default function TeamPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-semibold text-[#D4AF37]">
+                        <span className="text-sm font-semibold text-[#B8903A]">
                           {member.commission.toLocaleString("de-DE", {
                             style: "currency",
                             currency: "EUR",
@@ -316,7 +420,8 @@ export default function TeamPage() {
                         </span>
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -329,7 +434,7 @@ export default function TeamPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-[#D4AF37] to-[#B8941F] rounded-xl shadow-lg p-8 text-white"
+            className="bg-gradient-to-br from-[#B8903A] to-[#A67C2A] rounded-xl shadow-lg p-8 text-white"
           >
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -377,12 +482,12 @@ export default function TeamPage() {
                   }%`,
                 }}
                 transition={{ duration: 1, ease: "easeOut" }}
-                className="bg-gradient-to-r from-[#D4AF37] to-[#B8941F] h-3 rounded-full"
+                className="bg-gradient-to-r from-[#B8903A] to-[#A67C2A] h-3 rounded-full"
               />
             </div>
             <div className="flex justify-between text-xs text-slate-500">
               <span>{employeeData.nextBonus.current} / {employeeData.nextBonus.target} Leads</span>
-              <span className="font-semibold text-[#D4AF37]">
+              <span className="font-semibold text-[#B8903A]">
                 {employeeData.nextBonus.bonusAmount} €
               </span>
             </div>
@@ -429,7 +534,15 @@ export default function TeamPage() {
       )}
 
       {/* Invite Modal */}
-      <InviteModal isOpen={showInviteModal} onClose={() => setShowInviteModal(false)} />
+      <InviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        onInvite={handleInvite}
+        tempPassword={tempPassword}
+        inviteEmail={inviteEmail}
+        setInviteEmail={setInviteEmail}
+        loading={inviteLoading}
+      />
     </div>
   )
 }

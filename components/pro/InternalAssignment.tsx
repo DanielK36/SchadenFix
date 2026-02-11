@@ -17,15 +17,18 @@ interface InternalAssignmentProps {
   employees: Employee[]
   currentAssignment?: string | null
   onAssign: (employeeId: string) => Promise<void>
+  onAutoAssign?: () => Promise<void>
 }
 
 export function InternalAssignment({
   employees,
   currentAssignment,
   onAssign,
+  onAutoAssign,
 }: InternalAssignmentProps) {
   const [selectedEmployee, setSelectedEmployee] = useState<string>(currentAssignment || "")
   const [isAssigning, setIsAssigning] = useState(false)
+  const [isAutoAssigning, setIsAutoAssigning] = useState(false)
 
   const handleAssign = async () => {
     if (!selectedEmployee) return
@@ -37,6 +40,19 @@ export function InternalAssignment({
       console.error("Error assigning employee:", error)
     } finally {
       setIsAssigning(false)
+    }
+  }
+
+  const handleAutoAssign = async () => {
+    if (!onAutoAssign) return
+    setIsAutoAssigning(true)
+    try {
+      await onAutoAssign()
+      // Success feedback is handled by parent
+    } catch (error) {
+      console.error("Error auto-assigning:", error)
+    } finally {
+      setIsAutoAssigning(false)
     }
   }
 
@@ -61,6 +77,30 @@ export function InternalAssignment({
         </motion.div>
       ) : (
         <div className="space-y-2">
+          {/* Auto-Assign Option */}
+          {onAutoAssign && employees.length > 0 && (
+            <Button
+              onClick={handleAutoAssign}
+              disabled={isAutoAssigning || isAssigning}
+              className="w-full bg-green-600 text-white hover:bg-green-700 font-semibold text-sm mb-2"
+              size="sm"
+            >
+              {isAutoAssigning ? (
+                <>
+                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                  Wird automatisch zugewiesen...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3 h-3 mr-2" />
+                  Automatisch zuweisen
+                </>
+              )}
+            </Button>
+          )}
+          
+          <div className="text-xs text-slate-500 text-center mb-2">oder</div>
+          
           <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
             <SelectTrigger className="bg-white">
               <SelectValue placeholder="Mitarbeiter wählen..." />
@@ -78,7 +118,7 @@ export function InternalAssignment({
           </Select>
           <Button
             onClick={handleAssign}
-            disabled={!selectedEmployee || isAssigning}
+            disabled={!selectedEmployee || isAssigning || isAutoAssigning}
             className="w-full bg-blue-600 text-white hover:bg-blue-700 font-semibold text-sm"
             size="sm"
           >
@@ -90,7 +130,7 @@ export function InternalAssignment({
             ) : (
               <>
                 <User className="w-3 h-3 mr-2" />
-                Zuweisen
+                Manuell zuweisen
               </>
             )}
           </Button>

@@ -40,7 +40,7 @@ export function CommissionChart({ data }: CommissionChartProps) {
         <path
           d={pathData}
           fill="none"
-          stroke="#FFD700"
+          stroke="#B8903A"
           strokeWidth="2.5"
           vectorEffect="non-scaling-stroke"
         />
@@ -51,7 +51,7 @@ export function CommissionChart({ data }: CommissionChartProps) {
               cx={point.x}
               cy={point.y}
               r={hoveredIndex === index ? "3" : "2"}
-              fill="#FFD700"
+              fill="#B8903A"
               className="transition-all cursor-pointer"
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
@@ -67,7 +67,7 @@ export function CommissionChart({ data }: CommissionChartProps) {
                   height="8"
                   rx="2"
                   fill="#1A1A1A"
-                  stroke="#FFD700"
+                  stroke="#B8903A"
                   strokeWidth="0.5"
                 />
                 <text
@@ -75,7 +75,7 @@ export function CommissionChart({ data }: CommissionChartProps) {
                   y={point.y - 6}
                   textAnchor="middle"
                   fontSize="3"
-                  fill="#FFD700"
+                  fill="#B8903A"
                   fontWeight="600"
                 >
                   {point.revenue.toLocaleString("de-DE", {
@@ -90,14 +90,14 @@ export function CommissionChart({ data }: CommissionChartProps) {
         ))}
         <defs>
           <linearGradient id="commissionGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#FFD700" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="#FFD700" stopOpacity="0" />
+            <stop offset="0%" stopColor="#B8903A" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#B8903A" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>
       {/* Tooltip for touch devices */}
       {hoveredIndex !== null && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-[#1A1A1A] border border-[#FFD700] rounded px-3 py-1.5 text-sm text-[#FFD700] font-semibold whitespace-nowrap">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-[#1A1A1A] border border-[#B8903A] rounded px-3 py-1.5 text-sm text-[#B8903A] font-semibold whitespace-nowrap">
           {data[hoveredIndex].day}: {data[hoveredIndex].revenue.toLocaleString("de-DE", {
             style: "currency",
             currency: "EUR",

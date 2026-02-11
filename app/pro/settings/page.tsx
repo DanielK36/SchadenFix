@@ -1,24 +1,160 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { mockProfile } from "@/lib/mock/proData"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ProRole } from "@/lib/types/pro"
 import { Building2, FileText, Bell, Save } from "lucide-react"
 import { motion } from "framer-motion"
+import { useDemoMode } from "@/lib/hooks/useDemoMode"
+import { professionOptions } from "@/lib/constants/professions"
+import { supabase } from "@/lib/supabase"
+
+const defaultNotifications = { emailNewOrders: true, emailOrderChanges: true }
+
+const getEmptyProfile = () => ({
+  companyName: "",
+  contactPerson: "",
+  email: "",
+  phone: "",
+  address: "",
+  zip: "",
+  city: "",
+  iban: "",
+  accountHolder: "",
+  taxId: "",
+})
 
 export default function ProSettingsPage() {
-  const [profile, setProfile] = useState(mockProfile)
-  const [notifications, setNotifications] = useState(mockProfile.notifications)
+  const { isDemoMode } = useDemoMode()
+  const [profile, setProfile] = useState<Record<string, string>>(getEmptyProfile())
+  const [notifications, setNotifications] = useState(defaultNotifications)
+  const [professions, setProfessions] = useState<string[]>([])
   const [hasChanges, setHasChanges] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  const handleSave = () => {
-    // Dummy save
-    setHasChanges(false)
-    // In production, this would save to API
-    console.log("Settings saved:", { profile, notifications })
+  const loadProfile = async () => {
+    if (isDemoMode) {
+      const m = mockProfile as Record<string, unknown>
+      setProfile({
+        ...getEmptyProfile(),
+        companyName: (m.companyName as string) ?? "",
+        contactPerson: (m.contactPerson as string) ?? "",
+        email: (m.email as string) ?? "",
+        phone: (m.phone as string) ?? "",
+        address: (m.address as string) ?? "",
+        zip: (m.zip as string) ?? "",
+        city: (m.city as string) ?? "",
+        iban: (m.iban as string) ?? "",
+        accountHolder: (m.accountHolder as string) ?? "",
+        taxId: (m.taxId as string) ?? "",
+      })
+      setNotifications((mockProfile as any).notifications ?? defaultNotifications)
+      setProfessions(["trocknung", "maler"])
+      setLoading(false)
+      return
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      const { data: profileData, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle()
+
+      if (error) {
+        console.error("Error loading profile:", error)
+        setLoading(false)
+        return
+      }
+
+      const p = profileData as Record<string, unknown> | null
+      setProfile({
+        ...getEmptyProfile(),
+        companyName: (p?.company_name as string) ?? "",
+        contactPerson: (p?.contact_person as string) ?? "",
+        email: (p?.email as string) ?? "",
+        phone: (p?.phone as string) ?? "",
+        address: (p?.address as string) ?? "",
+        zip: (p?.zip as string) ?? "",
+        city: (p?.city as string) ?? "",
+        iban: (p?.iban as string) ?? "",
+        accountHolder: (p?.account_holder as string) ?? "",
+        taxId: (p?.tax_id as string) ?? "",
+      })
+
+      if (p?.professions && Array.isArray(p.professions)) {
+        setProfessions(p.professions as string[])
+      }
+    } catch (error) {
+      console.error("Error loading profile:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadProfile()
+  }, [isDemoMode])
+
+  const handleSave = async () => {
+    if (isDemoMode) {
+      setHasChanges(false)
+      console.log("Demo: Settings saved:", { profile, notifications, professions })
+      return
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert("Bitte melden Sie sich an")
+        return
+      }
+
+      const { error: profError } = await supabase
+        .from("profiles")
+        .update({
+          company_name: profile.companyName ?? "",
+          professions,
+          contact_person: profile.contactPerson ?? null,
+          email: profile.email ?? null,
+          phone: profile.phone ?? null,
+          address: profile.address ?? null,
+          zip: profile.zip ?? null,
+          city: profile.city ?? null,
+          iban: profile.iban ?? null,
+          account_holder: profile.accountHolder ?? null,
+          tax_id: profile.taxId ?? null,
+        })
+        .eq("id", user.id)
+
+      if (profError) {
+        console.error("Error saving settings:", profError)
+        alert("Fehler beim Speichern")
+        return
+      }
+
+      setHasChanges(false)
+      await loadProfile()
+    } catch (error) {
+      console.error("Error saving settings:", error)
+      alert("Fehler beim Speichern")
+    }
+  }
+
+  const handleProfessionToggle = (professionKey: string) => {
+    const newProfessions = professions.includes(professionKey)
+      ? professions.filter((p) => p !== professionKey)
+      : [...professions, professionKey]
+    setProfessions(newProfessions)
+    setHasChanges(true)
   }
 
   const handleProfileChange = (field: string, value: any) => {
@@ -58,27 +194,9 @@ export default function ProSettingsPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-2">Rolle</label>
-              <Select
-                value={profile.role}
-                onValueChange={(value) => handleProfileChange("role", value as ProRole)}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="HANDWERKER">Handwerker</SelectItem>
-                  <SelectItem value="WERKSTATT">Werkstatt</SelectItem>
-                  <SelectItem value="GUTACHTER">Gutachter</SelectItem>
-                  <SelectItem value="ANWALT">Anwalt</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
               <label className="text-sm font-medium text-slate-700 block mb-2">Firmenname</label>
               <Input
-                value={profile.companyName}
+                value={profile.companyName ?? ""}
                 onChange={(e) => handleProfileChange("companyName", e.target.value)}
                 className="bg-white"
               />
@@ -87,7 +205,7 @@ export default function ProSettingsPage() {
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-2">Ansprechpartner</label>
               <Input
-                value={profile.contactPerson}
+                value={profile.contactPerson ?? ""}
                 onChange={(e) => handleProfileChange("contactPerson", e.target.value)}
                 className="bg-white"
               />
@@ -98,7 +216,7 @@ export default function ProSettingsPage() {
                 <label className="text-sm font-medium text-slate-700 block mb-2">E-Mail</label>
                 <Input
                   type="email"
-                  value={profile.email}
+                  value={profile.email ?? ""}
                   onChange={(e) => handleProfileChange("email", e.target.value)}
                   className="bg-white"
                 />
@@ -107,7 +225,7 @@ export default function ProSettingsPage() {
                 <label className="text-sm font-medium text-slate-700 block mb-2">Telefon</label>
                 <Input
                   type="tel"
-                  value={profile.phone}
+                  value={profile.phone ?? ""}
                   onChange={(e) => handleProfileChange("phone", e.target.value)}
                   className="bg-white"
                 />
@@ -117,7 +235,7 @@ export default function ProSettingsPage() {
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-2">Adresse</label>
               <Input
-                value={profile.address}
+                value={profile.address ?? ""}
                 onChange={(e) => handleProfileChange("address", e.target.value)}
                 className="bg-white"
               />
@@ -127,7 +245,7 @@ export default function ProSettingsPage() {
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-2">PLZ</label>
                 <Input
-                  value={profile.zip}
+                  value={profile.zip ?? ""}
                   onChange={(e) => handleProfileChange("zip", e.target.value)}
                   className="bg-white"
                 />
@@ -135,11 +253,43 @@ export default function ProSettingsPage() {
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-2">Ort</label>
                 <Input
-                  value={profile.city}
+                  value={profile.city ?? ""}
                   onChange={(e) => handleProfileChange("city", e.target.value)}
                   className="bg-white"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-2">Gewerke</label>
+              <p className="text-xs text-slate-500 mb-3">
+                Wählen Sie die Gewerke aus, die Sie anbieten
+              </p>
+              {loading ? (
+                <p className="text-sm text-slate-500">Lade Gewerke...</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 border border-slate-200 rounded-md p-3 bg-white">
+                  {professionOptions.map((prof) => (
+                    <label
+                      key={prof.key}
+                      className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-colors ${
+                        professions.includes(prof.key)
+                          ? "bg-[#B8903A]/10 border-2 border-[#B8903A]"
+                          : "bg-gray-50 border-2 border-transparent hover:bg-gray-100"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={professions.includes(prof.key)}
+                        onChange={() => handleProfessionToggle(prof.key)}
+                        className="rounded border-gray-300 text-[#B8903A] focus:ring-[#B8903A]"
+                      />
+                      <span className="text-lg">{prof.icon}</span>
+                      <span className="text-sm text-slate-700">{prof.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -227,7 +377,7 @@ export default function ProSettingsPage() {
                   }
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#D4AF37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D4AF37]"></div>
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#B8903A] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B8903A]"></div>
               </label>
             </div>
 
@@ -247,7 +397,7 @@ export default function ProSettingsPage() {
                   }
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#D4AF37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D4AF37]"></div>
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#B8903A] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B8903A]"></div>
               </label>
             </div>
           </div>
@@ -269,7 +419,7 @@ export default function ProSettingsPage() {
             <div className="bg-white/80 backdrop-blur-md border-t border-slate-200/50 rounded-t-2xl shadow-lg p-4">
               <Button
                 onClick={handleSave}
-                className="w-full bg-[#D4AF37] text-slate-900 hover:bg-[#B8941F] font-semibold shadow-md py-6 text-base"
+                className="w-full bg-[#B8903A] text-slate-900 hover:bg-[#A67C2A] font-semibold shadow-md py-6 text-base"
               >
                 <Save className="w-5 h-5 mr-2" />
                 Änderungen speichern

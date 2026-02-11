@@ -40,8 +40,10 @@ export function mapSupabaseOrderToProOrder(order: SupabaseOrder): ProOrder {
     createdAt: order.created_at,
     scheduledAt: order.scheduled_at || undefined,
     status: statusMap[order.status] || "NEW",
+    statusDb: order.status,
     description: order.description || "",
     photos: order.order_wizard_data?.photos || [],
+    assigned_to: order.assigned_to || null,
     internalNotes: order.order_wizard_data?.internal_notes
       ? [
           {

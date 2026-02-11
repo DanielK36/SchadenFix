@@ -1,6 +1,7 @@
 "use client"
 
 import { useSearchParams, useRouter } from "next/navigation"
+import { Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PartnerBadges } from "@/components/PartnerBadges"
@@ -8,7 +9,7 @@ import { CheckCircle2, MessageCircle, Home } from "lucide-react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 
-export default function DankePage() {
+function DankeContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const ticketId = searchParams.get("ticket")
@@ -48,7 +49,7 @@ export default function DankePage() {
               )}
 
               <div className="space-y-3 sm:space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">So geht's weiter:</h3>
+                <h3 className="font-semibold text-base sm:text-lg">So geht&apos;s weiter:</h3>
                 <ul className="space-y-1.5 sm:space-y-2 list-disc list-inside text-sm sm:text-base text-muted-foreground">
                   <li>Bestätigung per E-Mail ist unterwegs.</li>
                   {onlyCallback || partners.length === 0 ? (
@@ -122,3 +123,16 @@ export default function DankePage() {
   )
 }
 
+export default function DankePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Lade...</p>
+        </div>
+      </div>
+    }>
+      <DankeContent />
+    </Suspense>
+  )
+}

@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       // Check if profile already exists
       const { data: existingProfile } = await supabaseServer
         .from("profiles")
-        .select("id, role, company_id")
+        .select("id, role")
         .eq("id", userId)
         .single()
 
@@ -83,7 +83,6 @@ export async function GET(request: NextRequest) {
           .from("profiles")
           .update({
             role: "chef",
-            company_id: existingProfile.company_id || userId,
             company_name: "Default Company",
           })
           .eq("id", userId)
@@ -103,7 +102,6 @@ export async function GET(request: NextRequest) {
           profile: {
             id: updatedProfile.id,
             role: updatedProfile.role,
-            company_id: updatedProfile.company_id,
           },
         })
       }
@@ -114,9 +112,7 @@ export async function GET(request: NextRequest) {
         .insert({
           id: userId,
           role: "chef",
-          company_id: userId, // Self-reference
           company_name: "Default Company",
-          full_name: existingUsers.users[0].user_metadata?.full_name || "System Admin",
         })
         .select()
         .single()
@@ -134,7 +130,6 @@ export async function GET(request: NextRequest) {
         profile: {
           id: newProfile.id,
           role: newProfile.role,
-          company_id: newProfile.company_id,
         },
       })
     }
@@ -145,7 +140,7 @@ export async function GET(request: NextRequest) {
     // Check if profile already exists (shouldn't happen, but just in case)
     const { data: existingProfile } = await supabaseServer
       .from("profiles")
-      .select("id, role, company_id")
+      .select("id, role")
       .eq("id", userId)
       .single()
 
@@ -155,7 +150,6 @@ export async function GET(request: NextRequest) {
         .from("profiles")
         .update({
           role: "chef",
-          company_id: existingProfile.company_id || userId,
           company_name: "Default Company",
         })
         .eq("id", userId)
@@ -175,7 +169,6 @@ export async function GET(request: NextRequest) {
         profile: {
           id: updatedProfile.id,
           role: updatedProfile.role,
-          company_id: updatedProfile.company_id,
         },
       })
     }
@@ -186,9 +179,7 @@ export async function GET(request: NextRequest) {
       .insert({
         id: userId,
         role: "chef",
-        company_id: userId, // Self-reference
         company_name: "Default Company",
-        full_name: "System Admin",
       })
       .select()
       .single()
@@ -206,7 +197,6 @@ export async function GET(request: NextRequest) {
       profile: {
         id: newProfile.id,
         role: newProfile.role,
-        company_id: newProfile.company_id,
       },
     })
   } catch (error: any) {

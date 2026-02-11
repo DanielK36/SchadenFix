@@ -1,7 +1,7 @@
 "use client"
 
-import { useParams, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
@@ -32,6 +32,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import Link from "next/link"
 import { ArrowLeft, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { persistRefFromUrl, getRefForClaim, clearRefAfterSubmit } from "@/lib/referral-storage"
 
 const claimSchemas = {
   kfz: kfzClaimSchema,
@@ -47,24 +48,27 @@ const claimSchemas = {
 export default function MeldenPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const type = params.type as string
   
-  if (!claimTypeSchema.safeParse(type).success) {
-    router.push("/")
-    return null
-  }
+  // Referral-Code aus URL in sessionStorage speichern, damit er beim Navigieren nicht verloren geht
+  const refFromUrl = searchParams.get("ref")
+  useEffect(() => {
+    persistRefFromUrl(refFromUrl)
+  }, [refFromUrl])
 
-  const schema = claimSchemas[type as keyof typeof claimSchemas]
+  // Initialize hooks before any early returns
+  const [currentStep, setCurrentStep] = useState(0)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   
-  if (!schema) {
-    console.error(`No schema found for type: ${type}`)
-    router.push("/")
-    return null
-  }
+  // Validate type first
+  const isValidType = claimTypeSchema.safeParse(type).success
+  const schema = isValidType ? claimSchemas[type as keyof typeof claimSchemas] : null
   
+  // Initialize form with conditional schema
   const form = useForm<ClaimInput>({
-    resolver: zodResolver(schema),
+    resolver: schema ? zodResolver(schema) : undefined,
     defaultValues: {
       type: type as any,
       description: "",
@@ -87,9 +91,18 @@ export default function MeldenPage() {
     },
     mode: "onChange", // Validierung bei Änderungen
   })
+  
+  // Early returns after all hooks
+  if (!isValidType) {
+    router.push("/")
+    return null
+  }
 
-  const [currentStep, setCurrentStep] = useState(0)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  if (!schema) {
+    console.error(`No schema found for type: ${type}`)
+    router.push("/")
+    return null
+  }
 
   // 3 Schritte statt 6
   const getSteps = () => {
@@ -408,7 +421,7 @@ export default function MeldenPage() {
             {type === "recht" && (
               <>
                 <div>
-                  <Label htmlFor="legalIssue">Worum geht's?</Label>
+                  <Label htmlFor="legalIssue">Worum geht&apos;s?</Label>
                   <Select
                     value={form.watch("legalIssue") || ""}
                     onValueChange={(value) => form.setValue("legalIssue", value as any)}
@@ -757,6 +770,11 @@ export default function MeldenPage() {
 
     const data = form.getValues()
     
+    // Trim E-Mail-Adresse (falls Whitespace vorhanden)
+    if (data.contact?.email) {
+      data.contact.email = data.contact.email.trim()
+    }
+    
     // Analytics: Submit
     const regionPrefix = data.plz ? data.plz.substring(0, 2) : ""
     const hasWorkshopBinding = type === "kfz" && (data as any).werkstattbindung === true
@@ -773,7 +791,11 @@ export default function MeldenPage() {
     }
     
     try {
-      const response = await fetch("/api/claim", {
+      // Referral-Code: zuerst aus URL, sonst aus sessionStorage (falls beim Navigieren verloren)
+      const refCode = getRefForClaim(searchParams.get("ref"))
+      const apiUrl = refCode ? `/api/claim?ref=${encodeURIComponent(refCode)}` : "/api/claim"
+      
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -782,6 +804,7 @@ export default function MeldenPage() {
       const result = await response.json()
 
       if (result.success) {
+        clearRefAfterSubmit()
         // Verwende redirectUrl von API, falls vorhanden, sonst Standard
         const redirectPath = result.redirectUrl || `/danke?ticket=${result.ticketId}`
         router.push(redirectPath)
@@ -805,8 +828,8 @@ export default function MeldenPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6">
-        <div className="flex justify-between items-center mb-4 sm:mb-8">
+      <div className="w-full mx-auto px-4 md:px-12 lg:px-16 xl:px-24 py-6 md:py-10">
+        <div className="flex justify-between items-center mb-6 md:mb-8">
           <Link href="/" className="flex items-center gap-1 sm:gap-2 text-primary hover:underline text-sm sm:text-base">
             <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
             Zurück
@@ -814,23 +837,25 @@ export default function MeldenPage() {
           <ThemeToggle />
         </div>
 
-        <Card className="max-w-3xl mx-auto">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl md:text-2xl">
+        <Card className="w-full">
+          <CardHeader className="p-4 sm:p-6 md:p-8">
+            <CardTitle className="text-lg sm:text-xl md:text-3xl lg:text-4xl">
               Schaden melden: {type.toUpperCase()}
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-4 sm:p-6 md:p-8">
             <Wizard
               steps={totalSteps}
               currentStep={currentStep}
               onNext={currentStep === totalSteps - 1 ? handleSubmit : handleNext}
               onBack={handleBack}
-              canProceed={true}
+              canProceed={!isSubmitting}
               isLastStep={currentStep === totalSteps - 1}
+              lastStepLabel="Fertig"
+              isSubmitting={isSubmitting}
             >
-              <div className="space-y-4 sm:space-y-6">
-                <h3 className="text-lg sm:text-xl font-semibold">{steps[currentStep].title}</h3>
+              <div className="space-y-4 sm:space-y-6 md:space-y-8">
+                <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold">{steps[currentStep].title}</h3>
                 {steps[currentStep].component}
               </div>
             </Wizard>

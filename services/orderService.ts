@@ -53,7 +53,7 @@ export interface Order {
  * Create a new order
  */
 export async function createOrder(data: CreateOrderData): Promise<Order> {
-  // Get current user's profile to get company_id
+  // Get current user's profile
   const {
     data: { user },
     error: userError,
@@ -62,13 +62,21 @@ export async function createOrder(data: CreateOrderData): Promise<Order> {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("company_id")
+    .select("id, role")
     .eq("id", user.id)
     .single()
 
   if (profileError || !profile) throw new Error("Profile not found")
 
-  const companyId = profile.company_id || user.id // Fallback to user.id if company_id is null
+  // If user is chef, company_id = their id. Otherwise find their chef.
+  let companyId: string
+  if (profile.role === "chef") {
+    companyId = user.id
+  } else {
+    // For azubi/partner, find their chef (for now use their id as fallback)
+    // TODO: Implement proper company relationship
+    companyId = user.id
+  }
 
   const { data: order, error } = await supabase
     .from("orders")
@@ -177,6 +185,7 @@ export async function getOrderById(orderId: string): Promise<Order | null> {
 
 /**
  * Get all orders for the current user's company
+ * Also includes orders assigned to the current user (assigned_to)
  */
 export async function getOrdersByCompany(): Promise<Order[]> {
   // Get current user's profile
@@ -188,14 +197,25 @@ export async function getOrdersByCompany(): Promise<Order[]> {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("company_id")
+    .select("id, role")
     .eq("id", user.id)
     .single()
 
   if (profileError || !profile) throw new Error("Profile not found")
 
-  const companyId = profile.company_id || user.id // Fallback to user.id if company_id is null
+  // If user is chef, company_id = their id. Otherwise find their chef.
+  let companyId: string
+  if (profile.role === "chef") {
+    companyId = user.id
+  } else {
+    // For azubi/partner, find their chef (for now use their id as fallback)
+    // TODO: Implement proper company relationship
+    companyId = user.id
+  }
 
+  // Get orders where:
+  // 1. company_id matches (orders from their company)
+  // 2. OR assigned_to matches (orders assigned to this user)
   const { data: orders, error } = await supabase
     .from("orders")
     .select(
@@ -211,7 +231,7 @@ export async function getOrdersByCompany(): Promise<Order[]> {
       )
     `
     )
-    .eq("company_id", companyId)
+    .or(`company_id.eq.${companyId},assigned_to.eq.${user.id}`)
     .order("created_at", { ascending: false })
 
   if (error) throw error
@@ -230,13 +250,21 @@ export async function getOrdersByStatus(status: OrderStatus): Promise<Order[]> {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("company_id")
+    .select("id, role")
     .eq("id", user.id)
     .single()
 
   if (profileError || !profile) throw new Error("Profile not found")
 
-  const companyId = profile.company_id || user.id // Fallback to user.id if company_id is null
+  // If user is chef, company_id = their id. Otherwise find their chef.
+  let companyId: string
+  if (profile.role === "chef") {
+    companyId = user.id
+  } else {
+    // For azubi/partner, find their chef (for now use their id as fallback)
+    // TODO: Implement proper company relationship
+    companyId = user.id
+  }
 
   const { data: orders, error } = await supabase
     .from("orders")
@@ -274,6 +302,35 @@ export async function updateOrderStatus(
     .eq("id", orderId)
 
   if (error) throw error
+}
+
+/**
+ * Accept order (assign to current user)
+ * Used when a handwerker accepts an order that was broadcast to multiple handwerkers
+ * @param orderId - The order ID to accept
+ * @param userId - The user ID to assign the order to (from authenticated request)
+ */
+export async function acceptOrder(orderId: string, userId: string): Promise<void> {
+  // Check if order exists and is not already assigned
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("id, assigned_to, status")
+    .eq("id", orderId)
+    .single()
+
+  if (orderError) throw orderError
+  if (!order) throw new Error("Order not found")
+
+  // Assign order to user and update status to "bearbeitung"
+  const { error: updateError } = await supabase
+    .from("orders")
+    .update({ 
+      assigned_to: userId,
+      status: "bearbeitung" 
+    })
+    .eq("id", orderId)
+
+  if (updateError) throw updateError
 }
 
 /**

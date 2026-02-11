@@ -93,7 +93,7 @@ export function OrderWizardScreen1({
                 }}
                 className={`p-6 rounded-xl border-2 transition-all active:scale-[0.98] ${
                   isSelected
-                    ? `${task.color} border-[#D4AF37] shadow-md`
+                    ? `${task.color} border-[#B8903A] shadow-md`
                     : "bg-white border-slate-200"
                 }`}
               >

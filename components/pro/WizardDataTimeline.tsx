@@ -154,8 +154,8 @@ export function WizardDataTimeline({ wizardData }: WizardDataTimelineProps) {
               )}
 
               {/* Icon */}
-              <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-[#D4AF37]/10 flex items-center justify-center">
-                <Icon className="w-5 h-5 text-[#D4AF37]" />
+              <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-[#B8903A]/10 flex items-center justify-center">
+                <Icon className="w-5 h-5 text-[#B8903A]" />
               </div>
 
               {/* Content */}

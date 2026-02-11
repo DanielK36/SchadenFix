@@ -19,9 +19,9 @@ export function ContactFields({ form }: ContactFieldsProps) {
           {...form.register("contact.name")}
           placeholder="Max Mustermann"
         />
-        {form.formState.errors.contact?.name && (
+        {form.formState.errors.contact && 'name' in form.formState.errors.contact && (
           <p className="text-xs sm:text-sm text-destructive mt-1">
-            {form.formState.errors.contact.name.message as string}
+            {(form.formState.errors.contact.name as any)?.message as string}
           </p>
         )}
       </div>
@@ -33,9 +33,9 @@ export function ContactFields({ form }: ContactFieldsProps) {
           {...form.register("contact.email")}
           placeholder="max@example.com"
         />
-        {form.formState.errors.contact?.email && (
+        {form.formState.errors.contact && 'email' in form.formState.errors.contact && (
           <p className="text-xs sm:text-sm text-destructive mt-1">
-            {form.formState.errors.contact.email.message as string}
+            {(form.formState.errors.contact.email as any)?.message as string}
           </p>
         )}
       </div>
@@ -47,9 +47,9 @@ export function ContactFields({ form }: ContactFieldsProps) {
           {...form.register("contact.phone")}
           placeholder="+49 123 456789"
         />
-        {form.formState.errors.contact?.phone && (
+        {form.formState.errors.contact && 'phone' in form.formState.errors.contact && (
           <p className="text-xs sm:text-sm text-destructive mt-1">
-            {form.formState.errors.contact.phone.message as string}
+            {(form.formState.errors.contact.phone as any)?.message as string}
           </p>
         )}
       </div>
@@ -69,9 +69,9 @@ export function ContactFields({ form }: ContactFieldsProps) {
             <SelectItem value="email">✉️ E-Mail</SelectItem>
           </SelectContent>
         </Select>
-        {form.formState.errors.contact?.preferredContactMethod && (
+        {form.formState.errors.contact && 'preferredContactMethod' in form.formState.errors.contact && (
           <p className="text-xs sm:text-sm text-destructive mt-1">
-            {form.formState.errors.contact.preferredContactMethod.message as string}
+            {(form.formState.errors.contact.preferredContactMethod as any)?.message as string}
           </p>
         )}
       </div>

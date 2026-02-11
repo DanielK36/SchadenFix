@@ -1,13 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { AlertTriangle, TrendingUp, Users, DollarSign, Package } from "lucide-react"
-import { getOrdersByCompany } from "@/services/orderService"
+import { useDemoMode } from "@/lib/hooks/useDemoMode"
+import { mockAdminOrders, mockAdminPartners, mockAdminInvoices } from "@/lib/mock/adminData"
 import { supabase } from "@/lib/supabase"
 
 export default function AdminDashboardPage() {
+  const { isDemoMode } = useDemoMode()
   const [kpis, setKpis] = useState({
     openOrders: 0,
+    closedOrders: 0,
     activePartners: 0,
     monthlyRevenue: 0,
     conversionRate: 0,
@@ -18,47 +22,87 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        // Load all orders (not just company-specific)
-        const { data: orders, error: ordersError } = await supabase
-          .from("orders")
-          .select("*")
-          .eq("status", "neu")
-          .order("created_at", { ascending: true })
+        let allOrders: any[] = []
+        
+        if (isDemoMode) {
+          // Use mock data in demo mode
+          allOrders = mockAdminOrders
+        } else {
+          // Load all orders via API (bypasses RLS)
+          const { data: sessionData } = await supabase.auth.getSession()
+          const token = sessionData.session?.access_token
+          const response = await fetch("/api/admin/orders", {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          })
+          const data = await response.json()
 
-        if (ordersError) throw ordersError
+          if (!data.success) {
+            throw new Error(data.error || "Failed to load orders")
+          }
+
+          allOrders = data.orders || []
+        }
+
+        const orders = allOrders.filter((o: any) => o.status === "neu")
 
         // Count open orders
         const openOrders = orders?.length || 0
 
-        // Count active partners
-        const { data: partners, error: partnersError } = await supabase
-          .from("partners")
-          .select("id")
-          .eq("is_verified", true)
-
-        if (partnersError) throw partnersError
-        const activePartners = partners?.length || 0
+        // Count active partners (using API if available, otherwise skip)
+        let activePartners = 0
+        if (isDemoMode) {
+          activePartners = mockAdminPartners.filter((p) => p.is_verified).length
+        } else {
+          try {
+            const { data: sessionData } = await supabase.auth.getSession()
+            const token = sessionData.session?.access_token
+            const partnersResponse = await fetch("/api/admin/partners", {
+              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            })
+            const partnersData = await partnersResponse.json()
+            if (partnersData.success) {
+              activePartners = partnersData.partners?.filter((p: any) => p.is_verified).length || 0
+            }
+          } catch (error) {
+            console.warn("Could not load partners:", error)
+          }
+        }
 
         // Calculate monthly revenue (from invoices)
-        const { data: invoices, error: invoicesError } = await supabase
-          .from("invoices")
-          .select("gross_amount")
-          .eq("status", "paid")
-          .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
-
-        if (invoicesError) throw invoicesError
-        const monthlyRevenue = invoices?.reduce((sum, inv) => sum + (parseFloat(inv.gross_amount) || 0), 0) || 0
+        let monthlyRevenue = 0
+        if (isDemoMode) {
+          const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+          const monthlyInvoices = mockAdminInvoices.filter((inv) => 
+            inv.status === "paid" && inv.created_at >= monthStart
+          )
+          monthlyRevenue = monthlyInvoices.reduce((sum, inv) => 
+            sum + (parseFloat(inv.gross_amount) || 0), 0
+          )
+        } else {
+          try {
+            const { data: sessionData } = await supabase.auth.getSession()
+            const token = sessionData.session?.access_token
+            const invoicesResponse = await fetch("/api/admin/invoices", {
+              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            })
+            const invoicesData = await invoicesResponse.json()
+            if (invoicesData.success) {
+              const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+              const monthlyInvoices = invoicesData.invoices?.filter((inv: any) => 
+                inv.status === "paid" && inv.created_at >= monthStart
+              ) || []
+              monthlyRevenue = monthlyInvoices.reduce((sum: number, inv: any) => 
+                sum + (parseFloat(inv.gross_amount) || 0), 0
+              )
+            }
+          } catch (error) {
+            console.warn("Could not load invoices:", error)
+          }
+        }
 
         // Calculate conversion rate (approved / total offers)
-        const { data: approvedOrders } = await supabase
-          .from("orders")
-          .select("id")
-          .eq("status", "genehmigt")
-
-        const { data: totalOffers } = await supabase
-          .from("orders")
-          .select("id")
-          .eq("status", "angebot")
+        const approvedOrders = allOrders.filter((o: any) => o.status === "abgeschlossen")
+        const totalOffers = allOrders.filter((o: any) => o.status === "angebot")
 
         const conversionRate = totalOffers && totalOffers.length > 0
           ? ((approvedOrders?.length || 0) / totalOffers.length) * 100
@@ -66,14 +110,15 @@ export default function AdminDashboardPage() {
 
         setKpis({
           openOrders,
+          closedOrders,
           activePartners,
           monthlyRevenue,
           conversionRate: Math.round(conversionRate),
         })
 
-        // Find problem orders (new for > 24h)
+        // Find problem orders (neu for > 24h)
         const now = new Date()
-        const problemOrdersList = (orders || []).filter((order) => {
+        const problemOrdersList = (neuOrders || []).filter((order: any) => {
           const createdAt = new Date(order.created_at)
           const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
           return hoursDiff > 24
@@ -87,7 +132,7 @@ export default function AdminDashboardPage() {
       }
     }
     loadData()
-  }, [])
+  }, [isDemoMode])
 
   return (
     <div className="p-8">
@@ -107,8 +152,18 @@ export default function AdminDashboardPage() {
             {loading ? "..." : kpis.openOrders}
           </p>
           {kpis.openOrders > 5 && (
-            <p className="text-xs text-red-600 mt-2">⚠️ Action Required</p>
+            <p className="text-xs text-red-600 mt-2">Action Required</p>
           )}
+        </div>
+
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-slate-600">Abgeschlossene Aufträge</span>
+            <Package className="w-5 h-5 text-slate-400" />
+          </div>
+          <p className="text-3xl font-bold font-mono text-slate-900">
+            {loading ? "..." : kpis.closedOrders}
+          </p>
         </div>
 
         <div className="bg-white rounded-lg border border-slate-200 p-6">
@@ -150,7 +205,7 @@ export default function AdminDashboardPage() {
             <h2 className="text-xl font-bold text-slate-900">Problem-Monitor</h2>
           </div>
           <p className="text-sm text-slate-600 mt-1">
-            Aufträge im Status "Neu" seit mehr als 24 Stunden ohne Partner-Zuweisung
+            Aufträge im Status &quot;Neu&quot; seit mehr als 24 Stunden ohne Partner-Zuweisung
           </p>
         </div>
         <div className="p-6">
@@ -201,9 +256,12 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-red-600 font-medium">{hoursDiff} Std.</td>
                         <td className="px-4 py-3 text-sm">
-                          <button className="text-blue-600 hover:text-blue-800 font-medium">
-                            Zuweisen →
-                          </button>
+                          <Link
+                            href={`/admin/orders/${order.id}`}
+                            className="text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            Details →
+                          </Link>
                         </td>
                       </tr>
                     )

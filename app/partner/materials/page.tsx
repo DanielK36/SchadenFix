@@ -1,15 +1,35 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Copy, QrCode, ChevronDown, ChevronUp } from "lucide-react"
 import { AnimatedButton } from "@/components/partner/AnimatedButton"
 import { toast } from "sonner"
+import { supabase } from "@/lib/supabase"
 
 export default function PartnerMaterialsPage() {
   const [copied, setCopied] = useState<string | null>(null)
   const [showQR, setShowQR] = useState(false)
   const [expandedText, setExpandedText] = useState<string | null>(null)
-  const affiliateLink = "https://beispiel.de/aff123"
+  const [affiliateLink, setAffiliateLink] = useState("https://beispiel.de/aff123")
+
+  useEffect(() => {
+    async function loadLink() {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+        const res = await fetch("/api/partner/affiliate-link", {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        })
+        const data = await res.json()
+        if (data?.success && data.link?.url) {
+          setAffiliateLink(data.link.url)
+        }
+      } catch (error) {
+        console.warn("Failed to load affiliate link:", error)
+      }
+    }
+    loadLink()
+  }, [])
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
@@ -50,7 +70,7 @@ export default function PartnerMaterialsPage() {
     <div className="space-y-4 page-transition">
       <div>
         <h1 className="text-white text-2xl font-bold">Werbemittel</h1>
-        <p className="text-[#9CA3AF] mt-0.5 text-xs">Ihr persönlicher Affiliate-Link und Werbetexte</p>
+        <p className="text-[#6B7280] mt-0.5 text-xs">Ihr persönlicher Affiliate-Link und Werbetexte</p>
       </div>
 
       {/* Affiliate Link */}
@@ -61,11 +81,11 @@ export default function PartnerMaterialsPage() {
             type="text"
             value={affiliateLink}
             readOnly
-            className="flex-1 bg-[#000000] border border-[#D4AF37]/20 rounded-lg px-4 py-3 text-sm text-white"
+            className="flex-1 bg-[#000000] border border-[#B8903A]/20 rounded-lg px-4 py-3 text-sm text-white"
           />
           <AnimatedButton
             onClick={() => handleCopy(affiliateLink, "link")}
-            className="bg-[#D4AF37] text-[#000000] rounded-lg py-3 px-5 font-semibold text-sm flex items-center gap-2 hover:bg-[#C19B2E] transition-colors whitespace-nowrap"
+            className="bg-[#B8903A] text-[#000000] rounded-lg py-3 px-5 font-semibold text-sm flex items-center gap-2 hover:bg-[#A67C2A] transition-colors whitespace-nowrap"
           >
             <Copy className="w-4 h-4" />
             <span>{copied === "link" ? "Kopiert" : "Kopieren"}</span>
@@ -76,7 +96,7 @@ export default function PartnerMaterialsPage() {
         <div className="mt-4">
           <button
             onClick={() => setShowQR(!showQR)}
-            className="flex items-center gap-2 text-[#9CA3AF] hover:text-white text-sm transition-colors"
+            className="flex items-center gap-2 text-[#6B7280] hover:text-white text-sm transition-colors"
           >
             {showQR ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             <span>QR-Code {showQR ? "ausblenden" : "anzeigen"}</span>
@@ -100,15 +120,15 @@ export default function PartnerMaterialsPage() {
             const isExpanded = expandedText === item.id
             return (
               <div key={item.id} className="bg-[#000000] rounded-xl overflow-hidden">
-                <button
+                <div
                   onClick={() => setExpandedText(isExpanded ? null : item.id)}
-                  className="w-full flex items-center justify-between p-3 hover:bg-[#1A1A1A] transition-colors"
+                  className="w-full flex items-center justify-between p-3 hover:bg-[#1A1A1A] transition-colors cursor-pointer"
                 >
                   <span className="text-white text-sm font-medium">{item.title}</span>
                   <div className="flex items-center gap-2">
                     <AnimatedButton
                       onClick={(e) => {
-                        e.stopPropagation()
+                        e?.stopPropagation()
                         handleCopy(item.text, item.id)
                       }}
                       className="bg-[#1A1A1A] hover:bg-[#2A2A2A] rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
@@ -117,12 +137,12 @@ export default function PartnerMaterialsPage() {
                       <span>{copied === item.id ? "✓" : "Kopieren"}</span>
                     </AnimatedButton>
                     {isExpanded ? (
-                      <ChevronUp className="w-4 h-4 text-[#9CA3AF]" />
+                      <ChevronUp className="w-4 h-4 text-[#6B7280]" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-[#9CA3AF]" />
+                      <ChevronDown className="w-4 h-4 text-[#6B7280]" />
                     )}
                   </div>
-                </button>
+                </div>
                 {isExpanded && (
                   <div className="px-3 pb-3">
                     <textarea

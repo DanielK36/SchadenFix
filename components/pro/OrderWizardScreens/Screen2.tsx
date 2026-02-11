@@ -86,7 +86,7 @@ export function OrderWizardScreen2({
                   }}
                   className={`px-6 py-3 rounded-full font-semibold transition-all active:scale-[0.98] ${
                     material === opt.id
-                      ? "bg-[#D4AF37] text-slate-900 shadow-md"
+                      ? "bg-[#B8903A] text-slate-900 shadow-md"
                       : "bg-white border-2 border-slate-200 text-slate-700"
                   }`}
                 >
@@ -118,7 +118,7 @@ export function OrderWizardScreen2({
                   }}
                   className={`px-6 py-3 rounded-full font-semibold transition-all active:scale-[0.98] ${
                     diameter === d
-                      ? "bg-[#D4AF37] text-slate-900 shadow-md"
+                      ? "bg-[#B8903A] text-slate-900 shadow-md"
                       : "bg-white border-2 border-slate-200 text-slate-700"
                   }`}
                 >

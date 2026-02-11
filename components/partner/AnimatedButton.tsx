@@ -1,11 +1,11 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ReactNode } from "react"
+import { ReactNode, MouseEvent } from "react"
 
 interface AnimatedButtonProps {
   children: ReactNode
-  onClick?: () => void
+  onClick?: (e?: MouseEvent<HTMLButtonElement>) => void
   className?: string
   type?: "button" | "submit" | "reset"
   disabled?: boolean

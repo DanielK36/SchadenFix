@@ -39,15 +39,15 @@ export function EmptyState({
       <div className="text-center max-w-md">
         <div className="flex justify-center mb-4">
           <div className="w-16 h-16 rounded-full bg-[#1A1A1A] flex items-center justify-center">
-            <Icon className="w-8 h-8 text-[#9CA3AF]" />
+            <Icon className="w-8 h-8 text-[#6B7280]" />
           </div>
         </div>
         <h3 className="text-white text-lg font-semibold mb-2">{title}</h3>
-        <p className="text-[#9CA3AF] text-sm mb-6">{subtitle}</p>
+        <p className="text-[#6B7280] text-sm mb-6">{subtitle}</p>
         {showCopyButton && (
           <AnimatedButton
             onClick={handleCopyLink}
-            className="bg-[#D4AF37] text-[#000000] rounded-lg py-3 px-6 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#C19B2E] transition-colors mx-auto"
+            className="bg-[#B8903A] text-[#000000] rounded-lg py-3 px-6 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#A67C2A] transition-colors mx-auto"
           >
             <Copy className="w-4 h-4" />
             <span>Link kopieren</span>

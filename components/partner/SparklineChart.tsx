@@ -28,7 +28,7 @@ export function SparklineChart({ data, height = 40 }: SparklineChartProps) {
         <path
           d={pathData}
           fill="none"
-          stroke="#D4AF37"
+          stroke="#B8903A"
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"

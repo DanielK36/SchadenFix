@@ -25,10 +25,10 @@ export function PerformanceChart({ data }: { data: { month: string; value: numbe
           <Line
             type="monotone"
             dataKey="value"
-            stroke="#D4AF37"
+            stroke="#B8903A"
             strokeWidth={2}
-            dot={{ r: 4, fill: "#D4AF37", strokeWidth: 0 }}
-            activeDot={{ r: 6, fill: "#D4AF37" }}
+            dot={{ r: 4, fill: "#B8903A", strokeWidth: 0 }}
+            activeDot={{ r: 6, fill: "#B8903A" }}
           />
         </LineChart>
       </ResponsiveContainer>

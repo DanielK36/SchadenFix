@@ -18,10 +18,13 @@ export interface ProOrder {
   createdAt: string
   scheduledAt?: string
   status: ProStatus
+  /** DB-Wert (neu, bearbeitung, angebot, genehmigt, abgeschlossen, storniert) für Filter Offen/Abgeschlossen */
+  statusDb?: string
   description: string
   photos?: string[]
   internalNotes?: ProNote[]
   invoiceId?: string
+  assigned_to?: string | null // User ID if assigned to a handwerker
 }
 
 export interface ProNote {
@@ -47,7 +50,7 @@ export interface ProInvoice {
 export interface ProBillingMonth {
   month: string // YYYY-MM
   totalRevenue: number
-  serviceFee: number // 10% of revenue
+  serviceFee: number // 15% of revenue
   status: "OPEN" | "SCHEDULED" | "PAID"
   paidAt?: string
 }
@@ -86,6 +89,7 @@ export interface ProProfile {
   city: string
   iban?: string
   accountHolder?: string
+  taxId?: string
   sepaMandate?: boolean
   documents?: {
     businessLicense?: { url: string; status: "PENDING" | "APPROVED" }

@@ -37,9 +37,9 @@ export function ConsentNote({ form }: ConsentNoteProps) {
           <p className="text-xs text-muted-foreground mt-2">
             Das Portal ist für Sie kostenfrei. Partnerbetriebe nutzen unsere Plattform auf <strong>Servicevertragsbasis (10 %)</strong>.
           </p>
-          {form.formState.errors.consents?.partner && (
+          {form.formState.errors.consents && 'partner' in form.formState.errors.consents && (
             <p className="text-xs text-destructive mt-1">
-              {form.formState.errors.consents.partner.message as string}
+              {(form.formState.errors.consents.partner as any)?.message as string}
             </p>
           )}
         </div>

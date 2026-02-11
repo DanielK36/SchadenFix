@@ -1,13 +1,15 @@
 "use client"
 
+import { useMemo } from "react"
 import { motion } from "framer-motion"
-import { Clock, User, Camera, Mic, FileText, CheckCircle2 } from "lucide-react"
+import { Camera, Mic, FileText, CheckCircle2, Send, PenLine, Receipt, Banknote } from "lucide-react"
 import type { WizardData } from "./OrderWizard"
 
 interface TimelineEvent {
   id: string
+  sortKey: number
   time: string
-  type: "order_created" | "wizard_data" | "voice_note" | "quote" | "status_change"
+  type: "order_created" | "wizard_data" | "voice_note" | "quote" | "quote_sent" | "quote_accepted" | "invoice_created" | "invoice_paid" | "status_change"
   title: string
   content?: React.ReactNode
   user?: string
@@ -17,38 +19,45 @@ interface OrderTimelineProps {
   orderCreatedAt: string
   wizardData?: WizardData | null
   status: string
+  quoteOfferSentAt?: string | null
+  quoteCustomerAcceptedAt?: string | null
+  orderInvoices?: { id: string; status: string; created_at?: string }[]
+}
+
+function formatTime(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
+
+function formatDateShort(iso: string): string {
+  const d = new Date(iso)
+  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) + " " + formatTime(iso)
 }
 
 export function OrderTimeline({
   orderCreatedAt,
   wizardData,
   status,
+  quoteOfferSentAt,
+  quoteCustomerAcceptedAt,
+  orderInvoices = [],
 }: OrderTimelineProps) {
-  const events: TimelineEvent[] = []
+  const events: TimelineEvent[] = useMemo(() => {
+    const list: TimelineEvent[] = []
+    const createdDate = new Date(orderCreatedAt)
+    const createdTime = formatTime(orderCreatedAt)
+    const createdKey = createdDate.getTime()
 
-  // Event 1: Order Created
-  const createdDate = new Date(orderCreatedAt)
-  events.push({
-    id: "order-created",
-    time: `${createdDate.getHours().toString().padStart(2, "0")}:${createdDate
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`,
-    type: "order_created",
-    title: "Auftrag angelegt",
-    user: "System",
-  })
+    list.push({
+      id: "order-created",
+      sortKey: createdKey,
+      time: createdTime,
+      type: "order_created",
+      title: "Auftrag angelegt",
+      user: "System",
+    })
 
-  // Event 2: Wizard Data (if available)
-  if (wizardData) {
-    const wizardDate = new Date() // In production, use actual timestamp
-    const wizardTime = `${wizardDate.getHours().toString().padStart(2, "0")}:${wizardDate
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`
-
-    // Task selection
-    if (wizardData.selectedTask) {
+    if (wizardData && (wizardData.selectedTask || (wizardData.photos && wizardData.photos.length > 0))) {
       const taskLabels: Record<string, string> = {
         leak_detection: "Leckortung",
         drying: "Trocknung",
@@ -57,15 +66,16 @@ export function OrderTimeline({
         building: "Gebäude",
         other: "Sonstiges",
       }
-
-      events.push({
+      const taskLabel = wizardData.selectedTask ? (taskLabels[wizardData.selectedTask] || wizardData.selectedTask) : "Daten erfasst"
+      list.push({
         id: "wizard-task",
-        time: wizardTime,
+        sortKey: createdKey + 60000,
+        time: "—",
         type: "wizard_data",
-        title: `Azubi Max hat Daten erfasst`,
-        user: "Max Mustermann",
-        content: (
-          <div className="space-y-4 mt-3">
+        title: "Vor-Ort-Daten erfasst",
+        user: wizardData.selectedTask ? taskLabel : undefined,
+        content: wizardData.selectedTask ? (
+          <div className="space-y-4 mt-3 max-h-40 overflow-y-auto">
             {/* Task */}
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Aufgabe</p>
@@ -190,32 +200,77 @@ export function OrderTimeline({
               </div>
             )}
           </div>
-        ),
+        ) : undefined,
       })
     }
 
-    // Voice Note (if available)
-    if (wizardData.documentationData?.notes && wizardData.documentationData.notes.includes("Mieter")) {
-      events.push({
+    if (wizardData?.documentationData?.notes?.includes("Mieter")) {
+      list.push({
         id: "voice-note",
-        time: `${(wizardDate.getMinutes() + 5).toString().padStart(2, "0")}:${wizardDate
-          .getSeconds()
-          .toString()
-          .padStart(2, "0")}`,
+        sortKey: createdKey + 120000,
+        time: "—",
         type: "voice_note",
         title: "Sprachnotiz",
-        user: "Max Mustermann",
+        user: "System",
         content: (
           <div className="mt-3">
-            {/* VoiceNotePlayer would be rendered here */}
-            <p className="text-sm text-slate-600 italic">
-              Sprachnotiz wurde transkribiert (siehe Notizen oben)
-            </p>
+            <p className="text-sm text-slate-600 italic">Sprachnotiz transkribiert (siehe Notizen)</p>
           </div>
         ),
       })
     }
-  }
+
+    if (quoteOfferSentAt) {
+      list.push({
+        id: "quote-sent",
+        sortKey: new Date(quoteOfferSentAt).getTime(),
+        time: formatDateShort(quoteOfferSentAt),
+        type: "quote_sent",
+        title: "Angebot an Kunde versendet",
+        user: "System",
+      })
+    }
+    if (quoteCustomerAcceptedAt) {
+      list.push({
+        id: "quote-accepted",
+        sortKey: new Date(quoteCustomerAcceptedAt).getTime(),
+        time: formatDateShort(quoteCustomerAcceptedAt),
+        type: "quote_accepted",
+        title: "Angebot vom Kunden angenommen",
+        user: "System",
+      })
+    }
+    const invoicesWithDate = orderInvoices.filter((inv: { created_at?: string }) => inv.created_at)
+    const lastInvoiceCreated = invoicesWithDate.length > 0
+      ? invoicesWithDate.sort((a: { created_at?: string }, b: { created_at?: string }) =>
+          (b.created_at || "").localeCompare(a.created_at || "")
+        )[0]
+      : null
+    if (lastInvoiceCreated?.created_at) {
+      list.push({
+        id: "invoice-created",
+        sortKey: new Date(lastInvoiceCreated.created_at).getTime(),
+        time: formatDateShort(lastInvoiceCreated.created_at),
+        type: "invoice_created",
+        title: "Rechnung erstellt",
+        user: "System",
+      })
+    }
+    const hasPaid = orderInvoices.some((inv) => inv.status === "paid")
+    if (hasPaid) {
+      list.push({
+        id: "invoice-paid",
+        sortKey: lastInvoiceCreated?.created_at ? new Date(lastInvoiceCreated.created_at).getTime() + 86400000 : createdKey + 86400000 * 7,
+        time: "—",
+        type: "invoice_paid",
+        title: "Rechnung bezahlt",
+        user: "System",
+      })
+    }
+
+    list.sort((a, b) => a.sortKey - b.sortKey)
+    return list
+  }, [orderCreatedAt, wizardData, quoteOfferSentAt, quoteCustomerAcceptedAt, orderInvoices])
 
   const getEventIcon = (type: TimelineEvent["type"]) => {
     switch (type) {
@@ -226,7 +281,14 @@ export function OrderTimeline({
       case "voice_note":
         return <Mic className="w-4 h-4" />
       case "quote":
-        return <FileText className="w-4 h-4" />
+      case "quote_sent":
+        return <Send className="w-4 h-4" />
+      case "quote_accepted":
+        return <PenLine className="w-4 h-4" />
+      case "invoice_created":
+        return <Receipt className="w-4 h-4" />
+      case "invoice_paid":
+        return <Banknote className="w-4 h-4" />
       default:
         return <CheckCircle2 className="w-4 h-4" />
     }
@@ -243,8 +305,8 @@ export function OrderTimeline({
           className="relative pl-8 pb-6 border-l-2 border-slate-200 last:border-l-0 last:pb-0"
         >
           {/* Timeline Dot */}
-          <div className="absolute left-0 top-0 -translate-x-[9px] w-4 h-4 bg-white border-2 border-[#D4AF37] rounded-full flex items-center justify-center">
-            <div className="w-2 h-2 bg-[#D4AF37] rounded-full" />
+          <div className="absolute left-0 top-0 -translate-x-[9px] w-4 h-4 bg-white border-2 border-[#B8903A] rounded-full flex items-center justify-center">
+            <div className="w-2 h-2 bg-[#B8903A] rounded-full" />
           </div>
 
           {/* Content */}

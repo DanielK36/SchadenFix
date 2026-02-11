@@ -304,7 +304,7 @@ export function OrderWizard({ orderId, damageType, onComplete, onClose }: OrderW
                     key={step}
                     className={`h-1 rounded-full transition-all ${
                       step <= getDisplayStep()
-                        ? "bg-[#D4AF37] w-8"
+                        ? "bg-[#B8903A] w-8"
                         : "bg-slate-200 w-2"
                     }`}
                   />
@@ -346,7 +346,7 @@ export function OrderWizard({ orderId, damageType, onComplete, onClose }: OrderW
             disabled={!canProceed}
             className={`w-full py-4 rounded-xl font-semibold text-lg transition-all ${
               canProceed
-                ? "bg-[#D4AF37] text-slate-900 active:scale-[0.98] shadow-md cursor-pointer"
+                ? "bg-[#B8903A] text-slate-900 active:scale-[0.98] shadow-md cursor-pointer"
                 : "bg-slate-200 text-slate-400 cursor-not-allowed"
             }`}
           >

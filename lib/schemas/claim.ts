@@ -39,7 +39,7 @@ export const preferredContactMethodSchema = z.enum(["whatsapp", "telefon", "emai
 
 export const contactSchema = z.object({
   name: z.string().min(2, "Name muss mindestens 2 Zeichen lang sein"),
-  email: z.string().email("Ungültige E-Mail-Adresse"),
+  email: z.string().trim().min(1, "E-Mail-Adresse ist erforderlich").email("Ungültige E-Mail-Adresse"),
   phone: z.string().regex(/^[\d\s\+\-\(\)]+$/, "Ungültige Telefonnummer").min(6, "Telefonnummer ist erforderlich"),
   preferredContactMethod: preferredContactMethodSchema,
 })

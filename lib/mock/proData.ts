@@ -9,7 +9,7 @@ import type {
   DamageType,
 } from "@/lib/types/pro"
 
-// Mock Orders
+// Mock Orders – statusDb = DB-Schritt (neu, bearbeitung, angebot, warte_auf_kunde, genehmigt, abgeschlossen, storniert)
 export const mockOrders: ProOrder[] = [
   {
     id: "SP-2024-001",
@@ -23,6 +23,7 @@ export const mockOrders: ProOrder[] = [
     createdAt: "2024-11-20T10:30:00Z",
     scheduledAt: "2024-11-21T14:00:00Z",
     status: "IN_PROGRESS",
+    statusDb: "bearbeitung",
     description: "Kratzer an der Fahrertür nach Parkrempler. Lackschaden ca. 30cm.",
     photos: ["/placeholder-photo-1.jpg"],
     internalNotes: [
@@ -45,6 +46,7 @@ export const mockOrders: ProOrder[] = [
     city: "Mönchengladbach",
     createdAt: "2024-11-20T08:15:00Z",
     status: "NEW",
+    statusDb: "neu",
     description: "Wasserrohrbruch im Badezimmer. Wasser läuft aus.",
     photos: ["/placeholder-photo-2.jpg", "/placeholder-photo-3.jpg"],
   },
@@ -57,6 +59,7 @@ export const mockOrders: ProOrder[] = [
     city: "Mönchengladbach",
     createdAt: "2024-11-19T16:45:00Z",
     status: "DONE",
+    statusDb: "abgeschlossen",
     description: "Fensterscheibe im Wohnzimmer gesprungen.",
     invoiceId: "INV-001",
   },
@@ -69,6 +72,7 @@ export const mockOrders: ProOrder[] = [
     city: "Mönchengladbach",
     createdAt: "2024-11-19T12:20:00Z",
     status: "IN_PROGRESS",
+    statusDb: "angebot",
     description: "Kleiner Küchenbrand, Rauchschaden an Wand und Decke.",
   },
   {
@@ -80,6 +84,7 @@ export const mockOrders: ProOrder[] = [
     city: "Mönchengladbach",
     createdAt: "2024-11-18T14:00:00Z",
     status: "DONE",
+    statusDb: "genehmigt",
     description: "Dachschaden nach Sturm, mehrere Ziegel fehlen.",
     invoiceId: "INV-002",
   },

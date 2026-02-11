@@ -13,6 +13,9 @@ interface WizardProps {
   onBack: () => void
   canProceed: boolean
   isLastStep: boolean
+  nextLabel?: string
+  lastStepLabel?: string
+  isSubmitting?: boolean
 }
 
 export function Wizard({
@@ -23,8 +26,17 @@ export function Wizard({
   onBack,
   canProceed,
   isLastStep,
+  nextLabel,
+  lastStepLabel,
+  isSubmitting,
 }: WizardProps) {
   const progress = ((currentStep + 1) / steps) * 100
+
+  const primaryLabel = isLastStep
+    ? isSubmitting
+      ? "Sende…"
+      : lastStepLabel || "Fertig"
+    : nextLabel || "Weiter"
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -70,10 +82,10 @@ export function Wizard({
         </Button>
         <Button
           onClick={onNext}
-          disabled={!canProceed}
+          disabled={!canProceed || isSubmitting}
           className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4 h-9 sm:h-10 flex-1 sm:flex-initial"
         >
-          <span>{isLastStep ? "Absenden" : "Weiter"}</span>
+          <span>{primaryLabel}</span>
           {!isLastStep && <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />}
         </Button>
       </div>

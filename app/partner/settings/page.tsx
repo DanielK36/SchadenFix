@@ -1,232 +1,220 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { AnimatedButton } from "@/components/partner/AnimatedButton"
 import { toast } from "sonner"
+import { useDemoMode } from "@/lib/hooks/useDemoMode"
+import { supabase } from "@/lib/supabase"
+import { LogOut } from "lucide-react"
 
 export default function PartnerSettingsPage() {
-  const [profile, setProfile] = useState({
-    firstName: "Max",
-    lastName: "Mustermann",
-    email: "max@example.com",
-    phone: "+49 151 12345678",
-    address: "Musterstraße 12",
-    zip: "41061",
-    city: "Mönchengladbach",
-  })
+  const router = useRouter()
+  const { isDemoMode } = useDemoMode()
+  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState({ companyName: "", email: "" })
+  const [bank, setBank] = useState({ iban: "", accountHolder: "", taxId: "" })
 
-  const [bank, setBank] = useState({
-    iban: "DE89 3704 0044 0532 0130 00",
-    accountHolder: "Max Mustermann",
-  })
-
-  const [notifications, setNotifications] = useState({
-    emailNewCommission: true,
-    emailNewLead: true,
-    emailPayout: true,
-  })
-
-  const handleSave = () => {
-    // Vibration
-    if (navigator.vibrate) {
-      navigator.vibrate(50)
+  const handleLogout = async () => {
+    try {
+      const { signOutPro } = await import("@/lib/auth")
+      await signOutPro()
+      router.push("/partner/login")
+      router.refresh()
+    } catch (error) {
+      console.error("Logout error:", error)
+      router.push("/partner/login")
+      router.refresh()
     }
-    
-    // Toast
-    toast.success("Einstellungen gespeichert! ✅", {
-      duration: 2000,
-    })
+  }
+
+  useEffect(() => {
+    async function loadSettings() {
+      setLoading(true)
+      try {
+        if (isDemoMode) {
+          setProfile({ companyName: "Demo Partner", email: "demo@example.com" })
+          setBank({ iban: "DE89 3704 0044 0532 0130 00", accountHolder: "Demo Partner", taxId: "" })
+          return
+        }
+
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+        const [profileRes, paymentRes] = await Promise.all([
+          fetch("/api/partner/settings/profile", {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          }),
+          fetch("/api/partner/settings/payment", {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          }),
+        ])
+        const profileData = await profileRes.json()
+        const paymentData = await paymentRes.json()
+
+        if (profileData?.success) {
+          setProfile({
+            companyName: profileData.profile.company_name || "",
+            email: profileData.profile.email || "",
+          })
+        }
+        if (paymentData?.success && paymentData.payment) {
+          setBank({
+            iban: paymentData.payment.iban || "",
+            accountHolder: paymentData.payment.account_holder || "",
+            taxId: paymentData.payment.tax_id || "",
+          })
+        }
+      } catch (error) {
+        console.warn(error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadSettings()
+  }, [isDemoMode])
+
+  const handleSaveProfile = async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      const res = await fetch("/api/partner/settings/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          company_name: profile.companyName,
+          email: profile.email,
+        }),
+      })
+      const data = await res.json()
+      if (!data?.success) throw new Error(data?.error || "Profil konnte nicht gespeichert werden")
+      toast.success("Profil gespeichert")
+    } catch (error: any) {
+      toast.error(error?.message || "Fehler beim Speichern")
+    }
+  }
+
+  const handleSavePayment = async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      const res = await fetch("/api/partner/settings/payment", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          iban: bank.iban,
+          accountHolder: bank.accountHolder,
+          taxId: bank.taxId,
+        }),
+      })
+      const data = await res.json()
+      if (!data?.success) throw new Error(data?.error || "Zahlungsdaten konnten nicht gespeichert werden")
+      toast.success("Zahlungsdaten gespeichert")
+    } catch (error: any) {
+      toast.error(error?.message || "Fehler beim Speichern")
+    }
   }
 
   return (
     <div className="space-y-4 page-transition">
       <div>
         <h1 className="partner-h1 text-2xl">Einstellungen</h1>
-        <p className="partner-body-small mt-0.5 text-xs">Profil und Einstellungen verwalten</p>
+        <p className="partner-body-small mt-0.5 text-xs">Profil und Auszahlung verwalten</p>
       </div>
 
       {/* Profil-Daten */}
       <div className="partner-card p-3 md:p-4">
         <h2 className="partner-h2 mb-2 md:mb-3 text-base md:text-lg">Profil-Daten</h2>
-        <div className="space-y-2 md:space-y-3 max-w-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {loading ? (
+          <p className="text-[#6B7280] text-sm">Lade Profil...</p>
+        ) : (
+          <div className="space-y-2 md:space-y-3 max-w-lg">
             <div>
-              <label className="partner-body-small block mb-1.5 text-xs">Vorname</label>
+              <label className="partner-body-small block mb-1.5 text-xs">Firmenname</label>
               <Input
-                value={profile.firstName}
-                onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
-                className="bg-[#0A0A0A] border-[#FFD700]/30 text-[#EAEAEA]"
+                value={profile.companyName}
+                onChange={(e) => setProfile({ ...profile, companyName: e.target.value })}
+                className="bg-[#0A0A0A] border-[#B8903A]/30 text-[#EAEAEA]"
               />
             </div>
             <div>
-              <label className="partner-body-small block mb-1.5 text-xs">Nachname</label>
+              <label className="partner-body-small block mb-1.5 text-xs">E-Mail</label>
               <Input
-                value={profile.lastName}
-                onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-                className="bg-[#0A0A0A] border-[#FFD700]/30 text-[#EAEAEA]"
+                type="email"
+                value={profile.email}
+                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                className="bg-[#0A0A0A] border-[#B8903A]/30 text-[#EAEAEA]"
               />
             </div>
-          </div>
-          <div>
-            <label className="partner-body-small block mb-1.5 text-xs">E-Mail</label>
-            <Input
-              type="email"
-              value={profile.email}
-              onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-              className="bg-[#0A0A0A] border-[#FFD700]/30 text-[#EAEAEA]"
-            />
-          </div>
-          <div>
-            <label className="partner-body-small block mb-1.5 text-xs">Telefon</label>
-            <Input
-              type="tel"
-              value={profile.phone}
-              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-              className="bg-[#0A0A0A] border-[#FFD700]/30 text-[#EAEAEA]"
-            />
-          </div>
-          <div>
-            <label className="partner-body-small block mb-1.5 text-xs">Adresse</label>
-            <Input
-              value={profile.address}
-              onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-              className="bg-[#0A0A0A] border-[#FFD700]/30 text-[#EAEAEA]"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="partner-body-small block mb-1.5 text-xs">PLZ</label>
-              <Input
-                value={profile.zip}
-                onChange={(e) => setProfile({ ...profile, zip: e.target.value })}
-                className="bg-[#0A0A0A] border-[#FFD700]/30 text-[#EAEAEA]"
-              />
-            </div>
-            <div>
-              <label className="partner-body-small block mb-1.5 text-xs">Ort</label>
-              <Input
-                value={profile.city}
-                onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                className="bg-[#0A0A0A] border-[#FFD700]/30 text-[#EAEAEA]"
-              />
+            <div className="flex justify-end">
+              <AnimatedButton onClick={handleSaveProfile} className="bg-[#B8903A] text-[#000000] px-5 py-2 rounded-xl">
+                Profil speichern
+              </AnimatedButton>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Bankverbindung */}
+      {/* Bankdaten */}
       <div className="partner-card p-3 md:p-4">
-        <h2 className="partner-h2 mb-2 md:mb-3 text-base md:text-lg">Bankverbindung</h2>
-        <div className="space-y-2 md:space-y-3 max-w-lg">
-          <div>
-            <label className="partner-body-small block mb-1.5 text-xs">IBAN</label>
-            <Input
-              value={bank.iban}
-              onChange={(e) => setBank({ ...bank, iban: e.target.value })}
-              className="bg-[#0A0A0A] border-[#FFD700]/30 text-[#EAEAEA]"
-            />
+        <h2 className="partner-h2 mb-2 md:mb-3 text-base md:text-lg">Auszahlungsdaten</h2>
+        {loading ? (
+          <p className="text-[#6B7280] text-sm">Lade Zahlungsdaten...</p>
+        ) : (
+          <div className="space-y-2 md:space-y-3 max-w-lg">
+            <div>
+              <label className="partner-body-small block mb-1.5 text-xs">IBAN</label>
+              <Input
+                value={bank.iban}
+                onChange={(e) => setBank({ ...bank, iban: e.target.value })}
+                className="bg-[#0A0A0A] border-[#B8903A]/30 text-[#EAEAEA]"
+              />
+            </div>
+            <div>
+              <label className="partner-body-small block mb-1.5 text-xs">Kontoinhaber</label>
+              <Input
+                value={bank.accountHolder}
+                onChange={(e) => setBank({ ...bank, accountHolder: e.target.value })}
+                className="bg-[#0A0A0A] border-[#B8903A]/30 text-[#EAEAEA]"
+              />
+            </div>
+            <div>
+              <label className="partner-body-small block mb-1.5 text-xs">Steuer-ID (optional)</label>
+              <Input
+                value={bank.taxId}
+                onChange={(e) => setBank({ ...bank, taxId: e.target.value })}
+                className="bg-[#0A0A0A] border-[#B8903A]/30 text-[#EAEAEA]"
+              />
+            </div>
+            <div className="flex justify-end">
+              <AnimatedButton onClick={handleSavePayment} className="bg-[#B8903A] text-[#000000] px-5 py-2 rounded-xl">
+                Zahlungsdaten speichern
+              </AnimatedButton>
+            </div>
           </div>
-          <div>
-            <label className="partner-body-small block mb-1.5 text-xs">Kontoinhaber</label>
-            <Input
-              value={bank.accountHolder}
-              onChange={(e) => setBank({ ...bank, accountHolder: e.target.value })}
-              className="bg-[#0A0A0A] border-[#FFD700]/30 text-[#EAEAEA]"
-            />
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Benachrichtigungen */}
+      {/* Logout Section */}
       <div className="partner-card p-3 md:p-4">
-        <h2 className="partner-h2 mb-2 md:mb-3 text-base md:text-lg">Benachrichtigungen</h2>
-        <div className="space-y-2 md:space-y-2.5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="partner-body text-[#EAEAEA] text-sm">E-Mail bei neuen Provisionen</p>
-              <p className="partner-body-small text-[#9CA3AF] text-xs">
-                Erhalten Sie eine E-Mail bei jeder neuen Provisionsgutschrift
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={notifications.emailNewCommission}
-              onChange={(e) =>
-                setNotifications({ ...notifications, emailNewCommission: e.target.checked })
-              }
-              className="w-5 h-5"
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="partner-body text-[#EAEAEA] text-sm">E-Mail bei neuen Leads</p>
-              <p className="partner-body-small text-[#9CA3AF] text-xs">
-                Erhalten Sie eine E-Mail bei jedem neuen vermittelten Kunden
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={notifications.emailNewLead}
-              onChange={(e) =>
-                setNotifications({ ...notifications, emailNewLead: e.target.checked })
-              }
-              className="w-5 h-5"
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="partner-body text-[#EAEAEA] text-sm">E-Mail bei Auszahlungen</p>
-              <p className="partner-body-small text-[#9CA3AF] text-xs">
-                Erhalten Sie eine E-Mail bei jeder erfolgten Auszahlung
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={notifications.emailPayout}
-              onChange={(e) =>
-                setNotifications({ ...notifications, emailPayout: e.target.checked })
-              }
-              className="w-5 h-5"
-            />
-          </div>
+        <h2 className="partner-h2 mb-2 md:mb-3 text-base md:text-lg">Abmelden</h2>
+        <div className="flex justify-end">
+          <AnimatedButton 
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Abmelden</span>
+          </AnimatedButton>
         </div>
-      </div>
-
-      {/* Passwort ändern */}
-      <div className="partner-card p-3 md:p-4">
-        <h2 className="partner-h2 mb-2 md:mb-3 text-base md:text-lg">Passwort ändern</h2>
-        <div className="space-y-2 md:space-y-3 max-w-lg">
-          <div>
-            <label className="partner-body-small block mb-1.5 text-xs">Neues Passwort</label>
-            <Input
-              type="password"
-              placeholder="••••••••"
-              className="bg-[#0A0A0A] border-[#FFD700]/30 text-[#EAEAEA]"
-            />
-          </div>
-          <div>
-            <label className="partner-body-small block mb-1.5 text-xs">Passwort bestätigen</label>
-            <Input
-              type="password"
-              placeholder="••••••••"
-              className="bg-[#0A0A0A] border-[#FFD700]/30 text-[#EAEAEA]"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <AnimatedButton
-          onClick={handleSave}
-          className="partner-button-primary px-8 py-3"
-        >
-          Einstellungen speichern
-        </AnimatedButton>
       </div>
     </div>
   )
 }
-
-

@@ -6,9 +6,24 @@ import { ExternalLink, X, Calendar, Clock, Loader2, CheckCircle2 } from "lucide-
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { supabase } from "@/lib/supabase"
 
 interface ExternalRequestProps {
-  onRequest: (trade: string, urgency: string, date?: string) => Promise<void>
+  orderId: string
+  orderZip?: string
+  onRequest?: (trade: string, urgency: string, date?: string) => Promise<void>
+}
+
+// Map UI trade IDs to database profession values
+const tradeToProfession: Record<string, string> = {
+  painter: "maler",
+  flooring: "bodenleger",
+  drying: "trocknung",
+  assessor: "gutachter",
+  electrician: "elektriker",
+  plumber: "sanitaer",
+  carpenter: "tischler",
+  roofer: "dachdecker",
 }
 
 const trades = [
@@ -31,28 +46,118 @@ const urgencyOptions = [
   { value: "flexible", label: "Flexibel" },
 ]
 
-export function ExternalRequest({ onRequest }: ExternalRequestProps) {
+export function ExternalRequest({ orderId, orderZip, onRequest }: ExternalRequestProps) {
   const [selectedTrade, setSelectedTrade] = useState<string | null>(null)
   const [urgency, setUrgency] = useState("")
   const [customDate, setCustomDate] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedTrades, setSubmittedTrades] = useState<string[]>([])
+  const [partners, setPartners] = useState<Array<{ id: string; name: string; rating: number }>>([])
+  const [selectedPartner, setSelectedPartner] = useState<string | null>(null)
+  const [isSearchingPartners, setIsSearchingPartners] = useState(false)
+
+  // Search for partners when trade is selected
+  const searchPartners = async (tradeId: string) => {
+    const profession = tradeToProfession[tradeId]
+    if (!profession) return
+
+    setIsSearchingPartners(true)
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      
+      const params = new URLSearchParams({ profession })
+      if (orderZip) {
+        params.append("zip", orderZip)
+      }
+
+      const res = await fetch(`/api/pro/partners/search?${params}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      const data = await res.json()
+
+      if (data.success && data.partners) {
+        setPartners(data.partners)
+        // Auto-select first partner if available
+        if (data.partners.length > 0) {
+          setSelectedPartner(data.partners[0].id)
+        }
+      } else {
+        setPartners([])
+        setSelectedPartner(null)
+      }
+    } catch (error) {
+      console.error("Error searching partners:", error)
+      setPartners([])
+      setSelectedPartner(null)
+    } finally {
+      setIsSearchingPartners(false)
+    }
+  }
+
+  const handleTradeSelect = (tradeId: string) => {
+    setSelectedTrade(tradeId)
+    setSelectedPartner(null)
+    setPartners([])
+    searchPartners(tradeId)
+  }
 
   const handleRequest = async () => {
     if (!selectedTrade || !urgency) return
 
-    setIsSubmitting(true)
-    try {
-      await onRequest(selectedTrade, urgency, customDate)
-      setSubmittedTrades([...submittedTrades, selectedTrade])
-      // Reset form
-      setSelectedTrade(null)
-      setUrgency("")
-      setCustomDate("")
-    } catch (error) {
-      console.error("Error submitting request:", error)
-    } finally {
-      setIsSubmitting(false)
+    // If we have a selected partner, assign them
+    if (selectedPartner) {
+      setIsSubmitting(true)
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+        
+        const res = await fetch(`/api/pro/orders/${orderId}/assign-partner`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ partnerId: selectedPartner }),
+        })
+
+        const data = await res.json()
+        if (!data.success) {
+          throw new Error(data.error || "Fehler beim Zuweisen des Partners")
+        }
+
+        // Call optional onRequest callback
+        if (onRequest) {
+          await onRequest(selectedTrade, urgency, customDate)
+        }
+
+        setSubmittedTrades([...submittedTrades, selectedTrade])
+        // Reset form
+        setSelectedTrade(null)
+        setUrgency("")
+        setCustomDate("")
+        setPartners([])
+        setSelectedPartner(null)
+      } catch (error: any) {
+        console.error("Error assigning partner:", error)
+        alert(error.message || "Fehler beim Zuweisen des Partners")
+      } finally {
+        setIsSubmitting(false)
+      }
+    } else if (onRequest) {
+      // Fallback to original behavior if no partner selected
+      setIsSubmitting(true)
+      try {
+        await onRequest(selectedTrade, urgency, customDate)
+        setSubmittedTrades([...submittedTrades, selectedTrade])
+        setSelectedTrade(null)
+        setUrgency("")
+        setCustomDate("")
+      } catch (error) {
+        console.error("Error submitting request:", error)
+      } finally {
+        setIsSubmitting(false)
+      }
     }
   }
 
@@ -92,13 +197,13 @@ export function ExternalRequest({ onRequest }: ExternalRequestProps) {
             return (
               <button
                 key={trade.id}
-                onClick={() => !isSubmitted && setSelectedTrade(trade.id)}
+                onClick={() => !isSubmitted && handleTradeSelect(trade.id)}
                 disabled={isSubmitted}
                 className={`px-2.5 py-1.5 rounded-lg font-medium text-xs transition-all active:scale-[0.98] ${
                   isSubmitted
                     ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                     : isSelected
-                      ? "bg-[#D4AF37] text-slate-900 shadow-md"
+                      ? "bg-[#B8903A] text-slate-900 shadow-md"
                       : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                 }`}
               >
@@ -150,21 +255,52 @@ export function ExternalRequest({ onRequest }: ExternalRequestProps) {
             )}
           </AnimatePresence>
 
+          {/* Partner Selection */}
+          {isSearchingPartners && (
+            <div className="text-sm text-slate-500 text-center py-2">
+              Suche Partner...
+            </div>
+          )}
+
+          {!isSearchingPartners && partners.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-700">Partner auswählen:</label>
+              <Select value={selectedPartner || ""} onValueChange={setSelectedPartner}>
+                <SelectTrigger className="bg-white text-sm">
+                  <SelectValue placeholder="Partner auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {partners.map((partner) => (
+                    <SelectItem key={partner.id} value={partner.id}>
+                      {partner.name} ({partner.rating} ⭐)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {!isSearchingPartners && partners.length === 0 && selectedTrade && (
+            <div className="text-xs text-slate-500 text-center py-2">
+              Keine Partner gefunden für dieses Gewerk
+            </div>
+          )}
+
           <Button
             onClick={handleRequest}
-            disabled={!urgency || isSubmitting}
+            disabled={!urgency || isSubmitting || (partners.length > 0 && !selectedPartner)}
             className="w-full bg-orange-600 text-white hover:bg-orange-700 font-semibold text-sm"
             size="sm"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                Wird gesendet...
+                Wird zugewiesen...
               </>
             ) : (
               <>
                 <ExternalLink className="w-3 h-3 mr-2" />
-                Anfrage senden
+                {partners.length > 0 ? "Partner zuweisen" : "Anfrage senden"}
               </>
             )}
           </Button>

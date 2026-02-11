@@ -4,7 +4,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { UploadthingAppProvider } from "@/components/uploadthing-provider";
-import { VersionSwitcher } from "@/components/v2/VersionSwitcher";
+import CustomerLayoutWrapper from "@/components/customer/CustomerLayoutWrapper";
+import { DemoProvider } from "@/lib/contexts/DemoContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -32,11 +33,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <UploadthingAppProvider>
-            <VersionSwitcher />
-            {children}
-            <Toaster />
-          </UploadthingAppProvider>
+          <DemoProvider>
+            <UploadthingAppProvider>
+              <CustomerLayoutWrapper>
+                {children}
+              </CustomerLayoutWrapper>
+              <Toaster />
+            </UploadthingAppProvider>
+          </DemoProvider>
         </ThemeProvider>
       </body>
     </html>

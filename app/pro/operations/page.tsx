@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useDemoMode } from "@/lib/hooks/useDemoMode"
 import { SkillMatrix } from "@/components/pro/SkillMatrix"
 import { RoutingRadar } from "@/components/pro/RoutingRadar"
 import { Button } from "@/components/ui/button"
@@ -8,119 +9,203 @@ import { Input } from "@/components/ui/input"
 import { Plus, Trash2, CheckCircle2, XCircle } from "lucide-react"
 import { mockZipAreas } from "@/lib/mock/proData"
 import type { ProZipArea } from "@/lib/types/pro"
+import { supabase } from "@/lib/supabase"
+import { availableProfessions, professionLabels } from "@/lib/constants/professions"
 
 type AvailabilityStatus = "AVAILABLE" | "LIMITED" | "UNAVAILABLE"
 
-// Mock data for trades
-const initialTrades = [
-  {
-    id: "painter",
-    name: "Maler",
-    description: "Malerarbeiten, Lackierungen, Tapezierarbeiten",
-    coveredInternally: true,
-  },
-  {
-    id: "drying",
-    name: "Trocknung",
-    description: "Bautrocknung, Wasserschadensanierung",
-    coveredInternally: false,
-  },
-  {
-    id: "assessor",
-    name: "Gutachter",
-    description: "Schadensgutachten, Bewertungen",
-    coveredInternally: false,
-  },
-  {
-    id: "flooring",
-    name: "Bodenleger",
-    description: "Parkett, Laminat, Fliesen",
-    coveredInternally: false,
-  },
-  {
-    id: "electrician",
-    name: "Elektriker",
-    description: "Elektroinstallationen, Reparaturen",
-    coveredInternally: false,
-  },
-  {
-    id: "plumber",
-    name: "Sanitär",
-    description: "Klempnerarbeiten, Installationen",
-    coveredInternally: true,
-  },
-  {
-    id: "carpenter",
-    name: "Tischler",
-    description: "Holzarbeiten, Möbel, Türen",
-    coveredInternally: false,
-  },
-  {
-    id: "roofer",
-    name: "Dachdecker",
-    description: "Dachsanierung, Reparaturen",
-    coveredInternally: false,
-  },
-]
-
-const mockRoutingLeads = [
-  {
-    id: "lead-1",
-    orderId: "12345",
-    trade: "Maler",
-    status: "accepted" as const,
-    partnerName: "Malerbetrieb Müller",
-    partnerRating: 4.8,
-    distance: 2.5,
-  },
-  {
-    id: "lead-2",
-    orderId: "12346",
-    trade: "Trocknung",
-    status: "found" as const,
-    partnerName: "Trocknungsexperten GmbH",
-    partnerRating: 4.6,
-    distance: 5.2,
-  },
-  {
-    id: "lead-3",
-    orderId: "12347",
-    trade: "Gutachter",
-    status: "searching" as const,
-  },
-]
+const tradeDescriptions: Record<string, string> = {
+  maler: "Malerarbeiten, Lackierungen, Tapezierarbeiten",
+  trocknung: "Bautrocknung, Wasserschadensanierung",
+  gutachter: "Schadensgutachten, Bewertungen",
+  bodenleger: "Parkett, Laminat, Fliesen",
+  sanitaer: "Klempnerarbeiten, Installationen",
+  dachdecker: "Dachsanierung, Reparaturen",
+  kfz: "KFZ-Schäden und Werkstatt",
+  glas: "Glas- und Fensterschäden",
+  rechtsfall: "Rechtsfälle / Anwalt",
+}
 
 export default function OperationsPage() {
+  const { isDemoMode } = useDemoMode()
   const [globalAvailability, setGlobalAvailability] = useState<AvailabilityStatus>("AVAILABLE")
-  const [zipAreas, setZipAreas] = useState<ProZipArea[]>(mockZipAreas)
-  const [trades, setTrades] = useState(initialTrades)
+  const [zipAreas, setZipAreas] = useState<ProZipArea[]>([])
+  const [trades, setTrades] = useState(
+    availableProfessions.map((key) => ({
+      id: key,
+      name: professionLabels[key] || key,
+      description: tradeDescriptions[key] || "",
+      coveredInternally: false,
+    }))
+  )
+  const [loading, setLoading] = useState(true)
+  const [routingLeads, setRoutingLeads] = useState<any[]>([])
 
-  const handleAddZipArea = () => {
-    const newArea: ProZipArea = {
-      id: `zip-${Date.now()}`,
-      zipRange: "",
-      active: true,
-      load: "GREEN",
+  useEffect(() => {
+    async function loadOperations() {
+      setLoading(true)
+      try {
+        if (isDemoMode) {
+          setZipAreas(mockZipAreas)
+          setRoutingLeads([
+            {
+              id: "lead-1",
+              orderId: "12345",
+              trade: "Maler",
+              status: "accepted",
+              partnerName: "Malerbetrieb Müller",
+              partnerRating: 4.8,
+              distance: 2.5,
+            },
+            {
+              id: "lead-2",
+              orderId: "12346",
+              trade: "Trocknung",
+              status: "found",
+              partnerName: "Trocknungsexperten GmbH",
+              partnerRating: 4.6,
+              distance: 5.2,
+            },
+            {
+              id: "lead-3",
+              orderId: "12347",
+              trade: "Gutachter",
+              status: "searching",
+            },
+          ])
+          return
+        }
+
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+
+        const [availabilityRes, zipRes] = await Promise.all([
+          fetch("/api/pro/operations/availability", {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          }),
+          fetch("/api/pro/operations/zip-areas", {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          }),
+        ])
+
+        const availabilityData = await availabilityRes.json()
+        const zipData = await zipRes.json()
+
+        if (availabilityData?.success) {
+          setGlobalAvailability(availabilityData.status || "AVAILABLE")
+        }
+        if (zipData?.success) {
+          setZipAreas(zipData.areas || [])
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("professions")
+          .eq("id", sessionData.session?.user?.id || "")
+          .single()
+
+        const professions = Array.isArray(profile?.professions) ? profile?.professions : []
+        setTrades((prev) =>
+          prev.map((trade) => ({
+            ...trade,
+            coveredInternally: professions.includes(trade.id),
+          }))
+        )
+        setRoutingLeads([])
+      } catch (error) {
+        console.warn("Failed to load operations data:", error)
+        if (!isDemoMode) {
+          setZipAreas([])
+          setRoutingLeads([])
+        }
+      } finally {
+        setLoading(false)
+      }
     }
-    setZipAreas([...zipAreas, newArea])
+
+    loadOperations()
+  }, [isDemoMode])
+
+  const handleAddZipArea = async () => {
+    if (isDemoMode) {
+      const newArea: ProZipArea = {
+        id: `zip-${Date.now()}`,
+        zipRange: "",
+        active: true,
+        load: "GREEN",
+      }
+      setZipAreas([...zipAreas, newArea])
+      return
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
+    const res = await fetch("/api/pro/operations/zip-areas", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ zipRange: "", active: true, load: "GREEN" }),
+    })
+    const data = await res.json()
+    if (data?.success && data.area) {
+      setZipAreas((prev) => [data.area, ...prev])
+    }
   }
 
-  const handleDeleteZipArea = (id: string) => {
-    setZipAreas(zipAreas.filter((area) => area.id !== id))
+  const handleDeleteZipArea = async (id: string) => {
+    if (isDemoMode) {
+      setZipAreas(zipAreas.filter((area) => area.id !== id))
+      return
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
+    const res = await fetch(`/api/pro/operations/zip-areas/${id}`, {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    })
+    const data = await res.json()
+    if (data?.success) {
+      setZipAreas(zipAreas.filter((area) => area.id !== id))
+    }
   }
 
-  const handleUpdateZipArea = (id: string, updates: Partial<ProZipArea>) => {
+  const handleUpdateZipArea = async (id: string, updates: Partial<ProZipArea>) => {
     setZipAreas(
       zipAreas.map((area) => (area.id === id ? { ...area, ...updates } : area))
     )
+
+    if (isDemoMode) return
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
+    await fetch(`/api/pro/operations/zip-areas/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(updates),
+    })
   }
 
-  const handleToggle = (tradeId: string, covered: boolean) => {
-    setTrades((prev) =>
-      prev.map((trade) =>
+  const handleToggle = async (tradeId: string, covered: boolean) => {
+    let nextTrades: typeof trades = []
+    setTrades((prev) => {
+      nextTrades = prev.map((trade) =>
         trade.id === tradeId ? { ...trade, coveredInternally: covered } : trade
       )
-    )
+      return nextTrades
+    })
+
+    if (isDemoMode) return
+    const { data: sessionData } = await supabase.auth.getSession()
+    const userId = sessionData.session?.user?.id
+    if (!userId) return
+
+    const professions = nextTrades.filter((t) => t.coveredInternally).map((t) => t.id)
+    await supabase.from("profiles").update({ professions }).eq("id", userId)
   }
 
   const getLoadColor = (load: string) => {
@@ -151,7 +236,21 @@ export default function OperationsPage() {
         <h2 className="text-lg font-bold text-slate-900 mb-4">Aktuelle Verfügbarkeit</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
-            onClick={() => setGlobalAvailability("AVAILABLE")}
+            onClick={async () => {
+              setGlobalAvailability("AVAILABLE")
+              if (!isDemoMode) {
+                const { data: sessionData } = await supabase.auth.getSession()
+                const token = sessionData.session?.access_token
+                await fetch("/api/pro/operations/availability", {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                  },
+                  body: JSON.stringify({ status: "AVAILABLE" }),
+                })
+              }
+            }}
             className={`py-4 px-6 rounded-xl font-semibold text-base transition-all duration-200 ${
               globalAvailability === "AVAILABLE"
                 ? "bg-green-500 text-white shadow-lg scale-105"
@@ -164,7 +263,21 @@ export default function OperationsPage() {
             </div>
           </button>
           <button
-            onClick={() => setGlobalAvailability("LIMITED")}
+            onClick={async () => {
+              setGlobalAvailability("LIMITED")
+              if (!isDemoMode) {
+                const { data: sessionData } = await supabase.auth.getSession()
+                const token = sessionData.session?.access_token
+                await fetch("/api/pro/operations/availability", {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                  },
+                  body: JSON.stringify({ status: "LIMITED" }),
+                })
+              }
+            }}
             className={`py-4 px-6 rounded-xl font-semibold text-base transition-all duration-200 ${
               globalAvailability === "LIMITED"
                 ? "bg-orange-500 text-white shadow-lg scale-105"
@@ -177,7 +290,21 @@ export default function OperationsPage() {
             </div>
           </button>
           <button
-            onClick={() => setGlobalAvailability("UNAVAILABLE")}
+            onClick={async () => {
+              setGlobalAvailability("UNAVAILABLE")
+              if (!isDemoMode) {
+                const { data: sessionData } = await supabase.auth.getSession()
+                const token = sessionData.session?.access_token
+                await fetch("/api/pro/operations/availability", {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                  },
+                  body: JSON.stringify({ status: "UNAVAILABLE" }),
+                })
+              }
+            }}
             className={`py-4 px-6 rounded-xl font-semibold text-base transition-all duration-200 ${
               globalAvailability === "UNAVAILABLE"
                 ? "bg-red-500 text-white shadow-lg scale-105"
@@ -207,7 +334,7 @@ export default function OperationsPage() {
             </div>
             <Button
               onClick={handleAddZipArea}
-              className="bg-[#D4AF37] text-white hover:bg-[#B8941F] flex items-center space-x-2"
+              className="bg-[#B8903A] text-white hover:bg-[#A67C2A] flex items-center space-x-2"
             >
               <Plus className="w-4 h-4" />
               <span>Gebiet hinzufügen</span>
@@ -288,7 +415,7 @@ export default function OperationsPage() {
 
       {/* Footer-Bereich: Vermittlungs-Radar */}
       <div>
-        <RoutingRadar leads={mockRoutingLeads} />
+        <RoutingRadar leads={routingLeads} />
       </div>
     </div>
   )

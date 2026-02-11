@@ -40,7 +40,7 @@ export function DailyRevenueChart({ data }: DailyRevenueChartProps) {
         <path
           d={pathData}
           fill="none"
-          stroke="#D4AF37"
+          stroke="#B8903A"
           strokeWidth="2.5"
           vectorEffect="non-scaling-stroke"
         />
@@ -51,7 +51,7 @@ export function DailyRevenueChart({ data }: DailyRevenueChartProps) {
               cx={point.x}
               cy={point.y}
               r={hoveredIndex === index ? "3" : "2"}
-              fill="#D4AF37"
+              fill="#B8903A"
               className="transition-all cursor-pointer"
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
@@ -67,7 +67,7 @@ export function DailyRevenueChart({ data }: DailyRevenueChartProps) {
                   height="8"
                   rx="2"
                   fill="#0F172A"
-                  stroke="#D4AF37"
+                  stroke="#B8903A"
                   strokeWidth="0.5"
                 />
                 <text
@@ -75,7 +75,7 @@ export function DailyRevenueChart({ data }: DailyRevenueChartProps) {
                   y={point.y - 6}
                   textAnchor="middle"
                   fontSize="3"
-                  fill="#D4AF37"
+                  fill="#B8903A"
                   fontWeight="600"
                 >
                   {point.revenue.toLocaleString("de-DE", {
@@ -90,8 +90,8 @@ export function DailyRevenueChart({ data }: DailyRevenueChartProps) {
         ))}
         <defs>
           <linearGradient id="dailyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#D4AF37" stopOpacity="0" />
+            <stop offset="0%" stopColor="#B8903A" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="#B8903A" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>

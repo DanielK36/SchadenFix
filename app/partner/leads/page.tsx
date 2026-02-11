@@ -1,11 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { mockLeads } from "@/lib/mock/partnerData"
 import type { LeadStatus } from "@/lib/types/partner"
 import { AnimatedButton } from "@/components/partner/AnimatedButton"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, Users } from "lucide-react"
+import { useDemoMode } from "@/lib/hooks/useDemoMode"
+import { EmptyState } from "@/components/partner/EmptyState"
+import { supabase } from "@/lib/supabase"
 
 const statusLabels: Record<LeadStatus, string> = {
   KONTAKT_AUFGENOMMEN: "Kontakt aufgenommen",
@@ -22,9 +25,40 @@ const statusColors: Record<LeadStatus, string> = {
 }
 
 export default function PartnerLeadsPage() {
+  const { isDemoMode } = useDemoMode()
   const [selectedStatus, setSelectedStatus] = useState<LeadStatus | "ALL">("ALL")
+  const [leads, setLeads] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const filteredLeads = mockLeads.filter((lead) => {
+  useEffect(() => {
+    async function loadLeads() {
+      setLoading(true)
+      try {
+        if (isDemoMode) {
+          setLeads(mockLeads)
+          return
+        }
+
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+        const res = await fetch("/api/partner/leads", {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        })
+        const data = await res.json()
+        if (!data?.success) throw new Error(data?.error || "Failed to load leads")
+        setLeads(data.leads || [])
+      } catch (error) {
+        console.warn(error)
+        setLeads([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadLeads()
+  }, [isDemoMode])
+
+  const filteredLeads = leads.filter((lead) => {
     if (selectedStatus !== "ALL" && lead.status !== selectedStatus) return false
     return true
   })
@@ -33,7 +67,7 @@ export default function PartnerLeadsPage() {
     <div className="space-y-4 page-transition">
       <div>
         <h1 className="text-white text-2xl font-bold">Leads</h1>
-        <p className="text-[#9CA3AF] mt-0.5 text-xs">Alle vermittelten Kunden im Überblick</p>
+        <p className="text-[#6B7280] mt-0.5 text-xs">Alle vermittelten Kunden im Überblick</p>
       </div>
 
       {/* Filter Chips - Horizontal Scroll */}
@@ -43,8 +77,8 @@ export default function PartnerLeadsPage() {
             onClick={() => setSelectedStatus("ALL")}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
               selectedStatus === "ALL"
-                ? "bg-[#D4AF37] text-[#000000]"
-                : "bg-[#1A1A1A] text-[#9CA3AF] hover:bg-[#2A2A2A]"
+                ? "bg-[#B8903A] text-[#000000]"
+                : "bg-[#1A1A1A] text-[#6B7280] hover:bg-[#2A2A2A]"
             }`}
           >
             Alle
@@ -55,8 +89,8 @@ export default function PartnerLeadsPage() {
               onClick={() => setSelectedStatus(status as LeadStatus)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
                 selectedStatus === status
-                  ? "bg-[#D4AF37] text-[#000000]"
-                  : "bg-[#1A1A1A] text-[#9CA3AF] hover:bg-[#2A2A2A]"
+                  ? "bg-[#B8903A] text-[#000000]"
+                  : "bg-[#1A1A1A] text-[#6B7280] hover:bg-[#2A2A2A]"
               }`}
             >
               {label}
@@ -68,7 +102,9 @@ export default function PartnerLeadsPage() {
       {/* Leads List */}
       <div className="bg-[#1A1A1A] rounded-2xl p-4 md:p-6">
         <h2 className="text-white text-lg font-semibold mb-4">Alle Leads</h2>
-        {filteredLeads.length === 0 ? (
+        {loading ? (
+          <p className="text-[#6B7280] text-sm">Lade Leads...</p>
+        ) : filteredLeads.length === 0 ? (
           <EmptyState
             icon={Users}
             title="Noch keine Einträge"
@@ -81,19 +117,19 @@ export default function PartnerLeadsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/5">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-[#9CA3AF] uppercase">
+                <th className="text-left py-3 px-4 text-xs font-semibold text-[#6B7280] uppercase">
                   Kundenname
                 </th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-[#9CA3AF] uppercase">
+                <th className="text-left py-3 px-4 text-xs font-semibold text-[#6B7280] uppercase">
                   Datum
                 </th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-[#9CA3AF] uppercase">
+                <th className="text-left py-3 px-4 text-xs font-semibold text-[#6B7280] uppercase">
                   Status
                 </th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-[#9CA3AF] uppercase">
+                <th className="text-left py-3 px-4 text-xs font-semibold text-[#6B7280] uppercase">
                   Erwartete Provision
                 </th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-[#9CA3AF] uppercase">
+                <th className="text-left py-3 px-4 text-xs font-semibold text-[#6B7280] uppercase">
                   Erhaltene Provision
                 </th>
               </tr>
@@ -109,7 +145,7 @@ export default function PartnerLeadsPage() {
                     <span className="text-white text-sm">{lead.customerName}</span>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="text-[#9CA3AF] text-sm">
+                    <span className="text-[#6B7280] text-sm">
                       {new Date(lead.createdAt).toLocaleDateString("de-DE")}
                     </span>
                   </td>
@@ -119,7 +155,7 @@ export default function PartnerLeadsPage() {
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="text-[#D4AF37] text-sm font-semibold">
+                    <span className="text-[#B8903A] text-sm font-semibold">
                       {lead.expectedCommission.toLocaleString("de-DE", {
                         style: "currency",
                         currency: "EUR",
@@ -159,11 +195,11 @@ export default function PartnerLeadsPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="text-[#9CA3AF]">
+                    <span className="text-[#6B7280]">
                       {new Date(lead.createdAt).toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}
                     </span>
-                    <span className="text-[#9CA3AF]">·</span>
-                    <span className="text-[#D4AF37] font-semibold">
+                    <span className="text-[#6B7280]">·</span>
+                    <span className="text-[#B8903A] font-semibold">
                       {lead.expectedCommission.toLocaleString("de-DE", {
                         style: "currency",
                         currency: "EUR",
@@ -172,7 +208,7 @@ export default function PartnerLeadsPage() {
                     </span>
                     {lead.receivedCommission && (
                       <>
-                        <span className="text-[#9CA3AF]">·</span>
+                        <span className="text-[#6B7280]">·</span>
                         <span className="text-white text-xs">
                           {lead.receivedCommission.toLocaleString("de-DE", {
                             style: "currency",
@@ -184,7 +220,7 @@ export default function PartnerLeadsPage() {
                     )}
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#9CA3AF] flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-[#6B7280] flex-shrink-0" />
               </div>
             </Link>
           ))}

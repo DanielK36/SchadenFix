@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import {
   LayoutDashboard,
   Package,
@@ -10,6 +11,8 @@ import {
   DollarSign,
   MapPin,
 } from "lucide-react"
+import { useDemoMode } from "@/lib/hooks/useDemoMode"
+import { getCurrentProUser } from "@/lib/auth"
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -22,14 +25,56 @@ const navigation = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { isDemoMode } = useDemoMode()
+  const [isChecking, setIsChecking] = useState(true)
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (isDemoMode) {
+        setIsChecking(false)
+        return
+      }
+
+      const proUser = await getCurrentProUser()
+      if (!proUser || proUser.profile?.role !== "admin") {
+        router.push("/pro/login")
+        return
+      }
+
+      setIsChecking(false)
+    }
+
+    checkAdmin()
+  }, [isDemoMode, router])
+
+  if (isChecking && !isDemoMode) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Lade...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 flex">
       {/* Sidebar */}
       <div className="w-64 bg-slate-900 text-white flex flex-col">
         <div className="p-6 border-b border-slate-800">
-          <h1 className="text-xl font-bold text-blue-400">FixAdmin</h1>
-          <p className="text-xs text-slate-400 mt-1">Kommandozentrale</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-blue-400">FixAdmin</h1>
+              <p className="text-xs text-slate-400 mt-1">Kommandozentrale</p>
+            </div>
+            {isDemoMode && (
+              <span className="px-2 py-1 text-xs font-semibold rounded bg-amber-100 text-amber-700 border border-amber-300">
+                DEMO
+              </span>
+            )}
+          </div>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {navigation.map((item) => {
