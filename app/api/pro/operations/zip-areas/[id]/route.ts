@@ -8,12 +8,12 @@ import { requireProUser } from "@/lib/server/requireProUser"
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await requireProUser(request)
     const body = await request.json()
-    const id = params.id
+    const { id } = await params
 
     const updates: Record<string, any> = {}
     if (typeof body.zipRange === "string") updates.zip_range = body.zipRange
@@ -56,11 +56,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await requireProUser(request)
-    const id = params.id
+    const { id } = await params
 
     const { error } = await supabaseServer
       .from("pro_zip_areas")

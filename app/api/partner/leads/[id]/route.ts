@@ -8,11 +8,11 @@ import { requirePartner } from "@/lib/server/requirePartner"
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await requirePartner(request)
-    const leadId = params.id
+    const { id: leadId } = await params
 
     const { data: order, error } = await supabaseServer
       .from("orders")

@@ -7,7 +7,7 @@ import { requireProUser } from "@/lib/server/requireProUser"
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId, profile } = await requireProUser(request)
@@ -15,7 +15,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
     }
 
-    const memberId = params.id
+    const { id: memberId } = await params
     const { error } = await supabaseServer
       .from("pro_team_members")
       .delete()
