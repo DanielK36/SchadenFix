@@ -123,7 +123,7 @@ export default function AdminDashboardPage() {
 
         // Find problem orders (neu for > 24h)
         const now = new Date()
-        const problemOrdersList = (neuOrders || []).filter((order: any) => {
+        const problemOrdersList = (orders || []).filter((order: any) => {
           const createdAt = new Date(order.created_at)
           const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
           return hoursDiff > 24
