@@ -9,10 +9,10 @@ import { requirePartner } from "@/lib/server/requirePartner"
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params
+    const { token } = await params
 
     if (!token || typeof token !== "string") {
       return NextResponse.json(
@@ -102,10 +102,10 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params
+    const { token } = await params
 
     if (!token || typeof token !== "string") {
       return NextResponse.json(
