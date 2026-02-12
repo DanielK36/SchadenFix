@@ -99,8 +99,8 @@ function formatAddressLines(address: string): string[] {
 
 function generateKvaPdf(offer: OfferData) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
-  const pageW = doc.getPageWidth()
-  const pageH = doc.getPageHeight()
+  const pageW = doc.internal.pageSize.getWidth()
+  const pageH = doc.internal.pageSize.getHeight()
   const margin = 25
   const contentW = pageW - margin * 2
   let y = margin
