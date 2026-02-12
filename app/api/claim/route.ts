@@ -291,7 +291,7 @@ export async function POST(request: NextRequest) {
       const assignmentResult = await autoAssignOnCreate({
         order: {
           id: order.id,
-          type: orderType,
+          type: orderType as any,
           customer_data: customerData as any,
         },
       })
