@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
@@ -45,7 +45,7 @@ const claimSchemas = {
   sonstiges: sonstigesClaimSchema,
 }
 
-export default function MeldenPage() {
+function MeldenPageContent() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -863,5 +863,13 @@ export default function MeldenPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function MeldenPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F8FAFC]" />}>
+      <MeldenPageContent />
+    </Suspense>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
@@ -17,7 +17,7 @@ const steps = [
   { id: 4, title: "Dokumente" },
 ]
 
-export default function ProRegisterPage() {
+function ProRegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [currentStep, setCurrentStep] = useState(1)
@@ -464,5 +464,13 @@ export default function ProRegisterPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ProRegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F8FAFC]" />}>
+      <ProRegisterForm />
+    </Suspense>
   )
 }

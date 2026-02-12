@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 import { DamageBentoGrid } from "@/components/ui/BentoGrid";
@@ -11,7 +11,7 @@ import { DamageForm } from "@/components/ui/DamageForm";
 import { SuccessScreen } from "@/components/ui/SuccessScreen";
 import { ChevronDown } from "lucide-react";
 
-export default function ImmersivePage() {
+function ImmersivePageContent() {
   const searchParams = useSearchParams();
   const [hasStarted, setHasStarted] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -345,5 +345,13 @@ export default function ImmersivePage() {
       </AnimatePresence>
 
     </div>
+  );
+}
+
+export default function ImmersivePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#DEDED7]" />}>
+      <ImmersivePageContent />
+    </Suspense>
   );
 }
