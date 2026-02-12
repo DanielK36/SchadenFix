@@ -190,8 +190,8 @@ export default function PartnerLeadsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-white font-semibold text-sm truncate">{lead.customerName}</p>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 ${statusColors[lead.status]}`}>
-                      {statusLabels[lead.status]}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 ${statusColors[lead.status as LeadStatus]}`}>
+                      {statusLabels[lead.status as LeadStatus]}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
