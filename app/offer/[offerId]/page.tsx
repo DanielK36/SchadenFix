@@ -118,13 +118,13 @@ function generateKvaPdf(offer: OfferData) {
 
   // —— Kopfbereich ——
   doc.setFontSize(24)
-  doc.setFont(undefined, "bold")
+  doc.setFont("helvetica", "bold")
   doc.setTextColor(...colorTitle)
   doc.text("Kostenvoranschlag", margin, y)
   y += 10
 
   doc.setFontSize(10)
-  doc.setFont(undefined, "normal")
+  doc.setFont("helvetica", "normal")
   doc.setTextColor(...colorLabel)
   doc.text(`Angebotsnummer: ${offerNo}`, margin, y)
   doc.text(`Datum: ${new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })}`, pageW - margin, y, { align: "right" })
@@ -139,12 +139,12 @@ function generateKvaPdf(offer: OfferData) {
   const col2X = margin + contentW / 2
   const vonStartY = y
   doc.setFontSize(8)
-  doc.setFont(undefined, "bold")
+  doc.setFont("helvetica", "bold")
   doc.setTextColor(...colorLabel)
   doc.text("AN", margin, y)
   doc.text("VON", col2X, y)
   y += 6
-  doc.setFont(undefined, "normal")
+  doc.setFont("helvetica", "normal")
   doc.setFontSize(11)
   doc.setTextColor(...colorTitle)
   doc.text(offer.customerName || "Kunde", margin, y)
@@ -225,7 +225,7 @@ function generateKvaPdf(offer: OfferData) {
   drawVerticalLines(headerTop, y + headerRowH)
   y += headerRowH
   doc.setFontSize(9)
-  doc.setFont(undefined, "bold")
+  doc.setFont("helvetica", "bold")
   doc.setTextColor(...colorLabel)
   const headerMidY = headerTop + headerRowH / 2
   doc.text("Position / Beschreibung", colDesc + cellPad, headerMidY - 1, { maxWidth: descMaxW })
@@ -235,7 +235,7 @@ function generateKvaPdf(offer: OfferData) {
   doc.text("Gesamt", colTotal + colTotalW - cellPad, headerMidY - 1, { align: "right" })
   y += 4
 
-  doc.setFont(undefined, "normal")
+  doc.setFont("helvetica", "normal")
   doc.setTextColor(...colorTitle)
   doc.setFontSize(10)
   const lineH = 5
@@ -280,13 +280,13 @@ function generateKvaPdf(offer: OfferData) {
   doc.setLineWidth(0.5)
   doc.line(margin, y, pageW - margin, y)
   y += 8
-  doc.setFont(undefined, "bold")
+  doc.setFont("helvetica", "bold")
   doc.setFontSize(12)
   doc.text("Gesamtbetrag (brutto)", margin + 2, y)
   doc.setTextColor(...colorAccent)
   doc.text(formatEuro(offer.grossTotal ?? 0), colTotal + colTotalW - 2, y, { align: "right" })
   doc.setTextColor(...colorTitle)
-  doc.setFont(undefined, "normal")
+  doc.setFont("helvetica", "normal")
 
   // —— Footer: Firmendaten + Bank links, Hinweise rechts ——
   const footerY = pageH - 38
@@ -298,10 +298,10 @@ function generateKvaPdf(offer: OfferData) {
   doc.setFontSize(8)
   doc.setTextColor(...colorLabel)
   if (company?.companyName) {
-    doc.setFont(undefined, "bold")
+    doc.setFont("helvetica", "bold")
     doc.text(company.companyName, margin, fy)
     fy += 5
-    doc.setFont(undefined, "normal")
+    doc.setFont("helvetica", "normal")
   }
   if (company?.address) {
     const addrLines = doc.splitTextToSize(company.address, footerLeftW)
