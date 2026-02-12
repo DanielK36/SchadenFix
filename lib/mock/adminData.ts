@@ -39,7 +39,8 @@ export interface MockRoutingRule {
   id: string
   zip_prefix: string
   profession: string
-  preferred_partner_id: string
+  preferred_assignee_id: string | null
+  assignee_type: 'partner' | 'handwerker' | null
   priority: number
   active: boolean
   created_at: string
@@ -205,7 +206,8 @@ export const mockRoutingRules: MockRoutingRule[] = [
     id: "rule-1",
     zip_prefix: "41",
     profession: "maler",
-    preferred_partner_id: "partner-1",
+    preferred_assignee_id: "partner-1",
+    assignee_type: 'partner',
     priority: 1,
     active: true,
     created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
@@ -214,7 +216,8 @@ export const mockRoutingRules: MockRoutingRule[] = [
     id: "rule-2",
     zip_prefix: "41",
     profession: "trocknung",
-    preferred_partner_id: "partner-2",
+    preferred_assignee_id: "partner-2",
+    assignee_type: 'partner',
     priority: 1,
     active: true,
     created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
@@ -223,7 +226,8 @@ export const mockRoutingRules: MockRoutingRule[] = [
     id: "rule-3",
     zip_prefix: "41",
     profession: "kfz",
-    preferred_partner_id: "partner-3",
+    preferred_assignee_id: "partner-3",
+    assignee_type: 'handwerker',
     priority: 2,
     active: true,
     created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
@@ -232,7 +236,8 @@ export const mockRoutingRules: MockRoutingRule[] = [
     id: "rule-4",
     zip_prefix: "40",
     profession: "glas",
-    preferred_partner_id: "partner-4",
+    preferred_assignee_id: "partner-4",
+    assignee_type: 'partner',
     priority: 1,
     active: false,
     created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
