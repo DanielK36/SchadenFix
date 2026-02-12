@@ -105,10 +105,10 @@ function generateKvaPdf(offer: OfferData) {
   const contentW = pageW - margin * 2
   let y = margin
 
-  const colorTitle = [30, 41, 59]
-  const colorLabel = [100, 116, 139]
-  const colorLine = [148, 163, 184]
-  const colorAccent = [212, 175, 55]
+  const colorTitle: [number, number, number] = [30, 41, 59]
+  const colorLabel: [number, number, number] = [100, 116, 139]
+  const colorLine: [number, number, number] = [148, 163, 184]
+  const colorAccent: [number, number, number] = [212, 175, 55]
   const rowHeightBase = 10
   const company = offer.company
 
