@@ -36,7 +36,7 @@ export default function ProSettingsPage() {
 
   const loadProfile = async () => {
     if (isDemoMode) {
-      const m = mockProfile as Record<string, unknown>
+      const m = mockProfile as unknown as Record<string, unknown>
       setProfile({
         ...getEmptyProfile(),
         companyName: (m.companyName as string) ?? "",
