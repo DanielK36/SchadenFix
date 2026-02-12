@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,7 @@ import { useDemoMode } from "@/lib/hooks/useDemoMode"
 import { AlertCircle, Eye, EyeOff } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
-export default function PartnerLoginPage() {
+function PartnerLoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setIsDemoMode } = useDemoMode()
@@ -205,5 +205,17 @@ export default function PartnerLoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PartnerLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A]">
+        <div className="text-white">Laden...</div>
+      </div>
+    }>
+      <PartnerLoginForm />
+    </Suspense>
   )
 }
