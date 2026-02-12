@@ -19,8 +19,8 @@ export async function DELETE(
     const { error } = await supabaseServer
       .from("pro_team_members")
       .delete()
-      .eq(\"company_id\", userId)
-      .eq(\"member_id\", memberId)
+      .eq("company_id", userId)
+      .eq("member_id", memberId)
 
     if (error) {
       return NextResponse.json(
