@@ -47,6 +47,11 @@ export default function AdminDashboardPage() {
 
         // Count open orders
         const openOrders = orders?.length || 0
+        
+        // Count closed orders (abgeschlossen, storniert)
+        const closedOrders = allOrders.filter((o: any) => 
+          o.status === "abgeschlossen" || o.status === "storniert"
+        ).length || 0
 
         // Count active partners (using API if available, otherwise skip)
         let activePartners = 0
