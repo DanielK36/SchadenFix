@@ -268,7 +268,7 @@ export async function autoAssignOnCreate(params: { order: Pick<Order, "id" | "ty
 
   if (!settings || settings.mode !== "auto") {
     console.log(`⚠️ Auto-Assignment übersprungen:`, { reason: !settings ? "no_settings" : "mode_not_auto" })
-    return { applied: false as const, reason: (!settings ? "no_settings" : "mode_not_auto") as const }
+    return { applied: false, reason: !settings ? "no_settings" : "mode_not_auto" }
   }
 
   const assignees = await findMatchingPartners({
