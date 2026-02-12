@@ -150,8 +150,8 @@ export default function PartnerLeadsPage() {
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[lead.status]}`}>
-                      {statusLabels[lead.status]}
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[lead.status as LeadStatus]}`}>
+                      {statusLabels[lead.status as LeadStatus]}
                     </span>
                   </td>
                   <td className="py-3 px-4">
